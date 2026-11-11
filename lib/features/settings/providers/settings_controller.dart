@@ -1,0 +1,69 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show ThemeMode;
+
+import '../../../core/storage/key_value_storage.dart';
+import '../models/app_settings.dart';
+
+class SettingsController extends ChangeNotifier {
+  SettingsController(this._storage) {
+    final raw = _storage.read(_storageKey);
+    if (raw != null) _settings = AppSettings.decode(raw);
+  }
+
+  static const _storageKey = 'luo_fanqie.settings.v1';
+
+  final KeyValueStorage _storage;
+  AppSettings _settings = const AppSettings();
+
+  AppSettings get settings => _settings;
+
+  ThemeMode get themeMode => switch (_settings.themeMode) {
+    AppThemeMode.system => ThemeMode.system,
+    AppThemeMode.light => ThemeMode.light,
+    AppThemeMode.dark => ThemeMode.dark,
+  };
+
+  void _apply(AppSettings next) {
+    if (identical(next, _settings)) return;
+    _settings = next;
+    unawaited(_storage.write(_storageKey, next.encode()));
+    notifyListeners();
+  }
+
+  void setFocusMinutes(int value) =>
+      _apply(_settings.copyWith(focusMinutes: value.clamp(1, 180)));
+
+  void setShortBreakMinutes(int value) =>
+      _apply(_settings.copyWith(shortBreakMinutes: value.clamp(1, 60)));
+
+  void setLongBreakMinutes(int value) =>
+      _apply(_settings.copyWith(longBreakMinutes: value.clamp(1, 120)));
+
+  void setRoundsPerLongBreak(int value) =>
+      _apply(_settings.copyWith(roundsPerLongBreak: value.clamp(2, 8)));
+
+  void setDailyGoalMinutes(int value) =>
+      _apply(_settings.copyWith(dailyGoalMinutes: value.clamp(15, 720)));
+
+  void setAutoStartBreak(bool value) =>
+      _apply(_settings.copyWith(autoStartBreak: value));
+
+  void setAutoStartFocus(bool value) =>
+      _apply(_settings.copyWith(autoStartFocus: value));
+
+  void setSoundEnabled(bool value) =>
+      _apply(_settings.copyWith(soundEnabled: value));
+
+  void setHapticsEnabled(bool value) =>
+      _apply(_settings.copyWith(hapticsEnabled: value));
+
+  void setNotificationsEnabled(bool value) =>
+      _apply(_settings.copyWith(notificationsEnabled: value));
+
+  void setThemeMode(AppThemeMode value) =>
+      _apply(_settings.copyWith(themeMode: value));
+
+  void resetToDefaults() => _apply(const AppSettings());
+}
