@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
@@ -28,8 +30,12 @@ class SoftCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
     final borderRadius = BorderRadius.circular(radius);
+    final baseColor = color ?? surfaces.card;
+    final glassColor = baseColor.withValues(
+      alpha: context.isDark ? 0.78 : 0.82,
+    );
     final decoration = BoxDecoration(
-      color: gradient == null ? (color ?? surfaces.card) : null,
+      color: gradient == null ? glassColor : null,
       gradient: gradient,
       borderRadius: borderRadius,
       border:
@@ -49,11 +55,14 @@ class SoftCard extends StatelessWidget {
       decoration: decoration,
       child: ClipRRect(
         borderRadius: borderRadius,
-        child: Material(
-          type: MaterialType.transparency,
-          child: onTap == null
-              ? content
-              : InkWell(onTap: onTap, child: content),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: Material(
+            type: MaterialType.transparency,
+            child: onTap == null
+                ? content
+                : InkWell(onTap: onTap, child: content),
+          ),
         ),
       ),
     );

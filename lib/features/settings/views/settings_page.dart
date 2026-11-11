@@ -3,12 +3,15 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/date_utils.dart';
 import '../../../shared/widgets/common.dart';
 import '../../../shared/widgets/soft_card.dart';
 import '../../../shared/widgets/tomato_mark.dart';
 import '../../settings/models/app_settings.dart';
 import '../../settings/providers/settings_controller.dart';
 import '../../stats/providers/stats_controller.dart';
+import '../../sync/providers/sync_controller.dart';
+import '../../sync/views/sync_settings_sheet.dart';
 import '../../tasks/providers/task_controller.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -20,6 +23,7 @@ class SettingsPage extends StatelessWidget {
     final settings = settingsController.settings;
     final stats = context.watch<StatsController>();
     final tasks = context.watch<TaskController>();
+    final sync = context.watch<SyncController>();
 
     return SafeArea(
       bottom: false,
@@ -301,6 +305,55 @@ class SettingsPage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 20),
+                const _SectionLabel(title: '跨设备同步'),
+                const SizedBox(height: 9),
+                SoftCard(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  radius: 24,
+                  child: Column(
+                    children: [
+                      _SettingRow(
+                        icon: Icons.cloud_sync_rounded,
+                        title: 'GitHub Gist 同步',
+                        subtitle: sync.isConfigured
+                            ? (sync.lastError ??
+                                  (sync.autoSync ? '自动同步已开启' : '手动同步'))
+                            : '换设备也不用重来',
+                        value: sync.statusLabel,
+                        onTap: () => showSyncSettings(context),
+                      ),
+                      if (sync.isConfigured) ...[
+                        _RowDivider(),
+                        _SettingRow(
+                          icon: Icons.sync_rounded,
+                          title: '立即同步',
+                          subtitle: sync.lastSyncAt == null
+                              ? '还没有同步过'
+                              : '上次同步 ${relativeDayLabel(sync.lastSyncAt!)} ${clockLabel(sync.lastSyncAt!)}',
+                          value: sync.isSyncing ? '同步中…' : '',
+                          onTap: sync.isSyncing
+                              ? null
+                              : () async {
+                                  final ok = await sync.syncNow();
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context)
+                                    ..hideCurrentSnackBar()
+                                    ..showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          ok
+                                              ? '同步完成，任务和专注记录已合并'
+                                              : (sync.lastError ?? '同步失败'),
+                                        ),
+                                      ),
+                                    );
+                                },
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
                 const _SectionLabel(title: '关于落·番茄'),
                 const SizedBox(height: 9),
                 SoftCard(
@@ -320,11 +373,11 @@ class SettingsPage extends StatelessWidget {
                         icon: Icons.info_outline_rounded,
                         title: '版本',
                         subtitle: '落·番茄',
-                        value: '1.1.0',
+                        value: '1.2.0',
                         onTap: () => showLicensePage(
                           context: context,
                           applicationName: '落·番茄',
-                          applicationVersion: '1.1.0',
+                          applicationVersion: '1.2.0',
                           applicationLegalese: '把时间种成番茄。',
                         ),
                       ),

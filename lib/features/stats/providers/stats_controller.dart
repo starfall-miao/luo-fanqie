@@ -141,14 +141,28 @@ class StatsController extends ChangeNotifier {
     _sessions = [session, ..._sessions];
     _sort();
     notifyListeners();
-    unawaited(
-      _storage.write(
-        _storageKey,
-        jsonEncode(_sessions.map((s) => s.toJson()).toList()),
-      ),
-    );
+    unawaited(_persist());
     return true;
   }
+
+  /// 写入同步合并后的记录：按 id 去重并保留全部历史。
+  void applyMergedSessions(Iterable<FocusSession> incoming) {
+    final byId = <String, FocusSession>{
+      for (final session in _sessions) session.id: session,
+    };
+    for (final session in incoming) {
+      byId.putIfAbsent(session.id, () => session);
+    }
+    _sessions = byId.values.toList();
+    _sort();
+    notifyListeners();
+    unawaited(_persist());
+  }
+
+  Future<void> _persist() => _storage.write(
+    _storageKey,
+    jsonEncode(_sessions.map((s) => s.toJson()).toList()),
+  );
 
   void clearAll() {
     _sessions = <FocusSession>[];

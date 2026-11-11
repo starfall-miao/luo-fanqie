@@ -170,4 +170,36 @@ void main() {
     expect(find.text('45:00'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('任务卡片可以一键开始专注', (tester) async {
+    await _pumpApp(tester);
+
+    await tester.tap(find.byIcon(Icons.checklist_rounded));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('开始').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('正在专注，点按暂停'), findsOneWidget);
+    expect(find.byIcon(Icons.pause_rounded), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.pause_rounded));
+    await tester.pump();
+    expect(find.text('已暂停，继续加油'), findsOneWidget);
+  });
+
+  testWidgets('可以打开跨设备同步设置', (tester) async {
+    await _pumpApp(tester);
+
+    await tester.tap(find.byIcon(Icons.person_outline_rounded));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('GitHub Gist 同步'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('GitHub Gist 同步'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('跨设备同步'), findsWidgets);
+    expect(find.text('GitHub Token'), findsOneWidget);
+    expect(find.text('保存并同步'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

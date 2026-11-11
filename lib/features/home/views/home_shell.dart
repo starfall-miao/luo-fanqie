@@ -10,7 +10,9 @@ import '../../../shared/widgets/tomato_mark.dart';
 import '../../focus/views/focus_page.dart';
 import '../../settings/views/settings_page.dart';
 import '../../stats/views/stats_page.dart';
+import '../../sync/providers/sync_controller.dart';
 import '../../tasks/views/tasks_page.dart';
+import '../../timer/models/pomodoro_phase.dart';
 import '../../timer/providers/pomodoro_controller.dart';
 
 class HomeShell extends StatefulWidget {
@@ -21,13 +23,6 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
-  static const _pages = <Widget>[
-    FocusPage(),
-    TasksPage(),
-    StatsPage(),
-    SettingsPage(),
-  ];
-
   static const _destinations = <_Destination>[
     _Destination('专注', Icons.timer_outlined, Icons.timer_rounded),
     _Destination('任务', Icons.checklist_rounded, Icons.fact_check_rounded),
@@ -37,6 +32,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
 
   int _index = 0;
   PomodoroController? _timer;
+  SyncController? _sync;
 
   @override
   void initState() {
@@ -52,6 +48,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     _timer?.justCompleted.removeListener(_onFocusCompleted);
     _timer = timer;
     timer.justCompleted.addListener(_onFocusCompleted);
+    _sync = context.read<SyncController>();
   }
 
   @override
@@ -65,6 +62,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _timer?.syncTime();
+      _sync?.syncOnResume();
     }
   }
 
@@ -107,16 +105,46 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     setState(() => _index = index);
   }
 
+  void _startFocusForTask(String taskId) {
+    final timer = context.read<PomodoroController>();
+    if (timer.isRunning) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('正在专注中，先暂停再切换任务')));
+      _goTo(0);
+      return;
+    }
+    if (timer.isPaused) timer.reset();
+    if (timer.phase != PomodoroPhase.focus) {
+      timer.switchPhase(PomodoroPhase.focus);
+    }
+    if (!timer.selectTask(taskId)) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('找不到这颗任务了')));
+      return;
+    }
+    timer.start();
+    HapticFeedback.mediumImpact();
+    _goTo(0);
+  }
+
   @override
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
+    final pages = <Widget>[
+      const FocusPage(),
+      TasksPage(onStartFocus: _startFocusForTask),
+      const StatsPage(),
+      const SettingsPage(),
+    ];
     return AppBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: LayoutBuilder(
           builder: (context, constraints) {
             final wide = constraints.maxWidth >= 980;
-            final content = IndexedStack(index: _index, children: _pages);
+            final content = IndexedStack(index: _index, children: pages);
             if (!wide) {
               return content;
             }
@@ -369,7 +397,7 @@ class _SideRail extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(10),
             child: Text(
-              '慢一点，也是在往前走。\n\nv1.1.0',
+              '慢一点，也是在往前走。\n\nv1.2.0',
               style: TextStyle(
                 height: 1.7,
                 fontSize: 11,

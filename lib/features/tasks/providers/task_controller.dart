@@ -18,13 +18,18 @@ class TaskController extends ChangeNotifier {
     } else {
       _tasks = _decode(raw);
     }
+    _deleted = _decodeDeleted(_storage.read(_deletedKey));
+    _pruneTombstones();
   }
 
   static const _storageKey = 'luo_fanqie.tasks.v1';
+  static const _deletedKey = 'luo_fanqie.tasks.deleted.v1';
+  static const _tombstoneLifetime = Duration(days: 90);
 
   final KeyValueStorage _storage;
   final DateTime Function() _now;
   List<Task> _tasks = <Task>[];
+  Map<String, DateTime> _deleted = <String, DateTime>{};
 
   List<Task> get tasks => List<Task>.unmodifiable(_tasks);
 
@@ -58,15 +63,22 @@ class TaskController extends ChangeNotifier {
     return null;
   }
 
+  Map<String, DateTime> get deletedTasks =>
+      Map<String, DateTime>.unmodifiable(_deleted);
+
   void add(Task task) {
-    _tasks = [task, ..._tasks];
+    final now = _now();
+    final next = task.copyWith(updatedAt: now);
+    _deleted.remove(task.id);
+    _tasks = [next, ..._tasks];
     _commit();
   }
 
   void update(Task task) {
     final index = _tasks.indexWhere((item) => item.id == task.id);
     if (index == -1) return;
-    _tasks = [..._tasks]..[index] = task;
+    _deleted.remove(task.id);
+    _tasks = [..._tasks]..[index] = task.copyWith(updatedAt: _now());
     _commit();
   }
 
@@ -74,6 +86,7 @@ class TaskController extends ChangeNotifier {
     final index = _tasks.indexWhere((task) => task.id == id);
     if (index == -1) return null;
     final removed = _tasks[index];
+    _deleted[id] = _now();
     _tasks = [..._tasks]..removeAt(index);
     _commit();
     return removed;
@@ -81,8 +94,31 @@ class TaskController extends ChangeNotifier {
 
   void insert(Task task, {int index = 0}) {
     final safeIndex = index.clamp(0, _tasks.length);
-    _tasks = [..._tasks]..insert(safeIndex, task);
+    _deleted.remove(task.id);
+    _tasks = [..._tasks]..insert(safeIndex, task.copyWith(updatedAt: _now()));
     _commit();
+  }
+
+  /// 同步合并在不触发逐条更新时间的情况下写回完整结果。
+  void applyMerged({
+    required List<Task> tasks,
+    required Map<String, DateTime> deletedTasks,
+  }) {
+    final now = _now();
+    _tasks = tasks;
+    _deleted = Map<String, DateTime>.from(deletedTasks);
+    // 删除发生得比最后修改更晚才算删除；否则任务应恢复显示。
+    for (final task in _tasks) {
+      final deletedAt = _deleted[task.id];
+      if (deletedAt != null && !deletedAt.isAfter(task.lastModified)) {
+        _deleted.remove(task.id);
+      }
+    }
+    _deleted.removeWhere(
+      (id, deletedAt) => now.difference(deletedAt) > _tombstoneLifetime,
+    );
+    notifyListeners();
+    unawaited(_persist());
   }
 
   void toggleDone(String id) {
@@ -102,19 +138,28 @@ class TaskController extends ChangeNotifier {
   }
 
   int clearCompleted() {
-    final count = _tasks.where((task) => task.done).length;
-    if (count == 0) return 0;
+    final removed = _tasks.where((task) => task.done).toList();
+    if (removed.isEmpty) return 0;
+    final now = _now();
+    for (final task in removed) {
+      _deleted[task.id] = now;
+    }
     _tasks = _tasks.where((task) => !task.done).toList();
     _commit();
-    return count;
+    return removed.length;
   }
 
   void clearAll() {
+    final now = _now();
+    for (final task in _tasks) {
+      _deleted[task.id] = now;
+    }
     _tasks = <Task>[];
     _commit();
   }
 
   void restoreSeedTasks() {
+    _deleted = <String, DateTime>{};
     _tasks = _seedTasks(_now());
     _commit();
   }
@@ -124,10 +169,45 @@ class TaskController extends ChangeNotifier {
     unawaited(_persist());
   }
 
-  Future<void> _persist() => _storage.write(
-    _storageKey,
-    jsonEncode(_tasks.map((t) => t.toJson()).toList()),
-  );
+  Future<void> _persist() async {
+    await Future.wait([
+      _storage.write(
+        _storageKey,
+        jsonEncode(_tasks.map((t) => t.toJson()).toList()),
+      ),
+      _storage.write(
+        _deletedKey,
+        jsonEncode(
+          _deleted.map((id, at) => MapEntry(id, at.toIso8601String())),
+        ),
+      ),
+    ]);
+  }
+
+  Map<String, DateTime> _decodeDeleted(String? raw) {
+    if (raw == null) return <String, DateTime>{};
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return <String, DateTime>{};
+      final result = <String, DateTime>{};
+      decoded.forEach((key, value) {
+        if (key is String && value is String) {
+          final parsed = DateTime.tryParse(value);
+          if (parsed != null) result[key] = parsed;
+        }
+      });
+      return result;
+    } catch (_) {
+      return <String, DateTime>{};
+    }
+  }
+
+  void _pruneTombstones() {
+    final now = _now();
+    _deleted.removeWhere(
+      (id, deletedAt) => now.difference(deletedAt) > _tombstoneLifetime,
+    );
+  }
 
   List<Task> _decode(String raw) {
     try {

@@ -12,15 +12,27 @@ class AppBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
     final scheme = Theme.of(context).colorScheme;
+    final overlayTop = surfaces.canvasTop.withValues(
+      alpha: context.isDark ? 0.70 : 0.52,
+    );
+    final overlayBottom = surfaces.canvasBottom.withValues(
+      alpha: context.isDark ? 0.82 : 0.62,
+    );
     return Stack(
       fit: StackFit.expand,
       children: [
+        Image.asset(
+          'assets/images/sunset_ocean.jpg',
+          fit: BoxFit.cover,
+          alignment: Alignment.center,
+          filterQuality: FilterQuality.medium,
+        ),
         DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [surfaces.canvasTop, surfaces.canvasBottom],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [overlayTop, overlayBottom],
             ),
           ),
         ),

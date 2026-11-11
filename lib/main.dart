@@ -6,6 +6,7 @@ import 'core/notifications/timer_notification_service.dart';
 import 'core/storage/key_value_storage.dart';
 import 'features/settings/providers/settings_controller.dart';
 import 'features/stats/providers/stats_controller.dart';
+import 'features/sync/providers/sync_controller.dart';
 import 'features/tasks/providers/task_controller.dart';
 import 'features/timer/providers/pomodoro_controller.dart';
 
@@ -31,6 +32,7 @@ class _LuoFanqieBootstrapState extends State<LuoFanqieBootstrap> {
   late final TaskController _tasks;
   late final StatsController _stats;
   late final PomodoroController _timer;
+  late final SyncController _sync;
 
   @override
   void initState() {
@@ -46,10 +48,17 @@ class _LuoFanqieBootstrapState extends State<LuoFanqieBootstrap> {
       notifications: const AndroidTimerNotificationService(),
       clock: widget.clock,
     );
+    _sync = SyncController(
+      tasks: _tasks,
+      stats: _stats,
+      storage: widget.storage,
+      clock: widget.clock,
+    );
   }
 
   @override
   void dispose() {
+    _sync.dispose();
     _timer.dispose();
     _settings.dispose();
     _tasks.dispose();
@@ -65,6 +74,7 @@ class _LuoFanqieBootstrapState extends State<LuoFanqieBootstrap> {
         ChangeNotifierProvider.value(value: _tasks),
         ChangeNotifierProvider.value(value: _stats),
         ChangeNotifierProvider.value(value: _timer),
+        ChangeNotifierProvider.value(value: _sync),
       ],
       child: const LuoFanqieApp(),
     );

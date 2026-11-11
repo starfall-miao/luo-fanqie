@@ -14,7 +14,9 @@ import 'widgets/task_editor_sheet.dart';
 enum _TaskFilter { all, pending, completed }
 
 class TasksPage extends StatefulWidget {
-  const TasksPage({super.key});
+  const TasksPage({super.key, this.onStartFocus});
+
+  final ValueChanged<String>? onStartFocus;
 
   @override
   State<TasksPage> createState() => _TasksPageState();
@@ -104,6 +106,9 @@ class _TasksPageState extends State<TasksPage> {
                       task: visible[i],
                       selected: visible[i].id == selectedTaskId,
                       onTap: () => showTaskEditor(context, task: visible[i]),
+                      onStart: widget.onStartFocus == null
+                          ? null
+                          : () => widget.onStartFocus!(visible[i].id),
                     ),
                     if (i != visible.length - 1) const SizedBox(height: 10),
                   ],
@@ -266,11 +271,13 @@ class _TaskTile extends StatelessWidget {
     required this.task,
     required this.selected,
     required this.onTap,
+    this.onStart,
   });
 
   final Task task;
   final bool selected;
   final VoidCallback onTap;
+  final VoidCallback? onStart;
 
   Color _priorityColor(BuildContext context) => switch (task.priority) {
     TaskPriority.high => AppPalette.tomato,
@@ -452,7 +459,52 @@ class _TaskTile extends StatelessWidget {
                   ],
                 ),
               ),
+              if (!task.done && onStart != null) ...[
+                const SizedBox(width: 8),
+                _StartFocusButton(onTap: onStart!),
+              ],
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StartFocusButton extends StatelessWidget {
+  const _StartFocusButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Tooltip(
+      message: '开始专注这颗任务',
+      child: Material(
+        color: scheme.primary.withValues(alpha: context.isDark ? 0.2 : 0.1),
+        borderRadius: BorderRadius.circular(13),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.play_arrow_rounded, size: 17, color: scheme.primary),
+                const SizedBox(height: 2),
+                Text(
+                  '开始',
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    height: 1.1,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.primary,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

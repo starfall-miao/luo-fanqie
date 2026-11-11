@@ -34,6 +34,7 @@ class Task {
     this.dueDate,
     this.done = false,
     this.completedAt,
+    this.updatedAt,
   });
 
   final String id;
@@ -47,6 +48,11 @@ class Task {
   final bool done;
   final DateTime createdAt;
   final DateTime? completedAt;
+
+  /// 最后修改时间，用于多设备同步时判断版本新旧；旧数据回退到创建时间。
+  final DateTime? updatedAt;
+
+  DateTime get lastModified => updatedAt ?? createdAt;
 
   double get progress {
     if (estimatedPomodoros <= 0) return 0;
@@ -70,6 +76,7 @@ class Task {
     bool? done,
     DateTime? completedAt,
     bool clearCompletedAt = false,
+    DateTime? updatedAt,
   }) {
     return Task(
       id: id,
@@ -98,6 +105,7 @@ class Task {
     'done': done,
     'createdAt': createdAt.toIso8601String(),
     'completedAt': completedAt?.toIso8601String(),
+    'updatedAt': (updatedAt ?? createdAt).toIso8601String(),
   };
 
   factory Task.fromJson(Map<String, dynamic> json) {
@@ -105,6 +113,7 @@ class Task {
         DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now();
     final completedAt = DateTime.tryParse(json['completedAt'] as String? ?? '');
     final dueDate = DateTime.tryParse(json['dueDate'] as String? ?? '');
+    final updatedAt = DateTime.tryParse(json['updatedAt'] as String? ?? '');
     return Task(
       id: json['id'] as String? ?? 'task-${createdAt.microsecondsSinceEpoch}',
       title: (json['title'] as String? ?? '').trim(),
@@ -126,6 +135,7 @@ class Task {
       done: json['done'] as bool? ?? false,
       createdAt: createdAt,
       completedAt: completedAt,
+      updatedAt: updatedAt,
     );
   }
 
