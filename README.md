@@ -33,11 +33,18 @@
 
 - **GitHub Releases**：<https://github.com/starfall-miao/luo-fanqie/releases>
 - 所有 Release 都标记为 **Pre-release / Beta**，标签统一使用 `v*-beta.*`。
-- Android 安装包支持 Android 7.0+（API 24），包含 arm64-v8a / armeabi-v7a / x86_64 三种 ABI。
-- APK 使用 release keystore 签名；安装包与 SHA-256 校验文件会随 Release 一起上传。
-- Web 版本同时打包为静态 zip，解压后用任意静态服务器托管即可。
+- 同一份提交会由 GitHub Actions 构建多端产物，每个文件都附带 `.sha256`。
 
-> 因为项目仍处于 Beta，数据格式和交互可能继续调整。安装包升级请使用后续同签名版本覆盖安装；跨签名安装需要先卸载。
+| 平台 | 产物 | 说明 |
+| --- | --- | --- |
+| Android | `*-android-universal.apk` | Android 7.0+（API 24），arm64 / armv7 / x86_64，release keystore 签名 |
+| Web | `*-web.zip` | 静态站点，解压后用任意静态服务器托管 |
+| iOS | `*-ios-unsigned.ipa` | 未签名产物，需要用 AltStore / Sideloadly 等自行重签 |
+| macOS | `*-macos.zip` | 未签名的 `.app`；首次打开可能需要右键打开或移除 quarantine |
+| Windows | `*-windows.zip` | 解压后运行 `luo_fanqie_app.exe` |
+| Linux | `*-linux-x64.tar.gz` | 需要 GTK 3 运行环境，解压后运行 `luo_fanqie_app` |
+
+> 目前只有 Android 与 Web 端经过重点测试；iOS / 桌面端是 Beta 构建，尚未做开发者签名或商店分发。因为项目仍处于 Beta，数据格式和交互可能继续调整；Android 升级请使用后续同签名版本覆盖安装，跨签名需要先卸载。
 
 ## 现在已经有的
 
@@ -97,6 +104,9 @@
 flutter pub get
 flutter run -d chrome    # Web
 flutter run              # Android / iOS 设备
+flutter run -d macos     # macOS
+flutter run -d windows   # Windows
+flutter run -d linux     # Linux
 ```
 
 ### Android 构建（国内镜像）
@@ -138,10 +148,11 @@ dart analyze
 ```
 
 - `CI` workflow 在 push / PR 时自动执行 analyze 与 test。
-- `Android Beta Release` workflow 支持手动触发或推送 `v*-beta.*` 标签：
-  - 构建签名 APK 与 Web 静态包
-  - 生成 SHA-256
-  - 创建 **Pre-release** GitHub Release（带 Beta 标识）
+- `Beta Release` workflow 支持手动触发或推送 `v*-beta.*` 标签，会并行构建：
+  - Android 签名 APK + Web 静态包
+  - iOS 未签名 IPA + macOS 未签名 `.app`
+  - Windows ZIP + Linux x64 tar.gz
+  - 汇总 SHA-256，创建 **Pre-release** GitHub Release（带 Beta 标识）
 - 截图生成：
 
 ```bash
@@ -173,6 +184,8 @@ lib/
 │   ├── settings/                 # 设置与同步入口
 │   └── timer/                    # 番茄钟状态机、阶段视觉、通知调度
 └── shared/widgets/               # 背景、玻璃卡片、品牌番茄
+
+android/ · ios/ · macos/ · windows/ · linux/ · web/   # 平台工程
 ```
 
 技术栈：Flutter / Material 3、ChangeNotifier + provider、shared_preferences、fl_chart、http、CustomPainter、Android AlarmManager（Kotlin）。
@@ -198,7 +211,7 @@ lib/
 - [ ] 应用内「锁机 / 学霸模式」：严格计时、离开页面提醒、免打扰引导
 - [ ] 白噪音与背景音（雨声、海浪、咖啡馆等）
 - [ ] 任务目标时长 / 今日进度百分比
-- [ ] iOS 本地通知
+- [ ] iOS / 桌面端本地通知
 - [ ] 更多主题与小组件
 
 关于「强制防打扰」：阻止其他 App、拦截全部通知、隐藏桌面图标、防卸载这类能力依赖 Android 辅助功能、设备管理员或定制 ROM，且与 Google Play 政策、用户安全和隐私存在冲突，本项目不会以「恶意防关闭」的方式实现。后续会优先做**应用内严格模式 + 免打扰引导**这种透明、可退出的方案。

@@ -296,6 +296,31 @@ def main() -> None:
     save(icon(512, mark_scale=0.78), web_dir / "icons/Icon-maskable-512.png")
     save(icon(32), web_dir / "favicon.png", rgb=True)
 
+
+    print("macOS icons…")
+    macos_dir = ROOT / "macos/Runner/Assets.xcassets/AppIcon.appiconset"
+    macos_dir.mkdir(parents=True, exist_ok=True)
+    for name, px in {
+        "app_icon_16.png": 16,
+        "app_icon_32.png": 32,
+        "app_icon_64.png": 64,
+        "app_icon_128.png": 128,
+        "app_icon_256.png": 256,
+        "app_icon_512.png": 512,
+        "app_icon_1024.png": 1024,
+    }.items():
+        save(icon(px), macos_dir / name, rgb=True)
+
+    print("Windows icon…")
+    windows_icon = ROOT / "windows/runner/resources/app_icon.ico"
+    windows_icon.parent.mkdir(parents=True, exist_ok=True)
+    icon(256).save(
+        windows_icon,
+        format="ICO",
+        sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)],
+    )
+    print(f"  {windows_icon.relative_to(ROOT)}")
+
     print("启动图…")
     (ROOT / "android/app/src/main/res/drawable/launch_background.xml").write_text(
         """<?xml version="1.0" encoding="utf-8"?>
