@@ -202,4 +202,27 @@ void main() {
     expect(find.text('保存并同步'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('平板横屏使用双栏布局且不溢出', (tester) async {
+    await _pumpApp(
+      tester,
+      logicalSize: const Size(1024, 768),
+      devicePixelRatio: 2,
+    );
+    expect(find.text('今日足迹'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.byIcon(Icons.checklist_rounded));
+    await tester.pumpAndSettle();
+    expect(find.text('一棵一棵，慢慢长大'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.insights_outlined));
+    await tester.pumpAndSettle();
+    expect(find.text('时间留下的形状'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.person_outline_rounded));
+    await tester.pumpAndSettle();
+    expect(find.text('好好生活，慢慢专注'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

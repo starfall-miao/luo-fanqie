@@ -34,93 +34,103 @@ class TimerDial extends StatelessWidget {
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
     final visuals = visualsFor(phase);
-    final size = math.min(MediaQuery.sizeOf(context).width - 64, maxSize);
-    final timeSize = size * 0.185;
-    return Center(
-      child: SizedBox(
-        width: size,
-        height: size,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Positioned.fill(
-              child: TweenAnimationBuilder<double>(
-                tween: Tween<double>(end: progress),
-                duration: const Duration(milliseconds: 320),
-                curve: Curves.easeOut,
-                builder: (context, value, child) => CustomPaint(
-                  painter: _DialPainter(
-                    progress: value,
-                    phase: phase,
-                    trackColor: surfaces.track,
-                    tickColor: surfaces.border.withValues(alpha: 0.75),
-                    surfaceColor: surfaces.card.withValues(
-                      alpha: context.isDark ? 0.42 : 0.52,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final available = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : MediaQuery.sizeOf(context).width - 64;
+        final size = math.min(
+          math.min(available, MediaQuery.sizeOf(context).width - 64),
+          maxSize,
+        );
+        final timeSize = size * 0.185;
+        return Center(
+          child: SizedBox(
+            width: size,
+            height: size,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Positioned.fill(
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween<double>(end: progress),
+                    duration: const Duration(milliseconds: 320),
+                    curve: Curves.easeOut,
+                    builder: (context, value, child) => CustomPaint(
+                      painter: _DialPainter(
+                        progress: value,
+                        phase: phase,
+                        trackColor: surfaces.track,
+                        tickColor: surfaces.border.withValues(alpha: 0.75),
+                        surfaceColor: surfaces.card.withValues(
+                          alpha: context.isDark ? 0.42 : 0.52,
+                        ),
+                        borderColor: surfaces.border.withValues(alpha: 0.7),
+                        isDark: context.isDark,
+                      ),
                     ),
-                    borderColor: surfaces.border.withValues(alpha: 0.7),
-                    isDark: context.isDark,
                   ),
                 ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: size * 0.19),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _PhaseBadge(phase: phase, status: status),
-                  SizedBox(height: size * 0.045),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      remainingLabel,
-                      style: TextStyle(
-                        fontSize: timeSize,
-                        height: 1,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 1,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                        color: context.onSurface,
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: size * 0.19),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _PhaseBadge(phase: phase, status: status),
+                      SizedBox(height: size * 0.045),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          remainingLabel,
+                          style: TextStyle(
+                            fontSize: timeSize,
+                            height: 1,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 1,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                            color: context.onSurface,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 11),
-                  _RoundDots(
-                    rounds: rounds,
-                    completed: completedInCycle,
-                    accent: visuals.accent,
-                    idle: status == PomodoroStatus.idle,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    taskTitle ?? phase.subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      height: 1.4,
-                      color: surfaces.muted,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  if (phase == PomodoroPhase.focus) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      '第 $roundNumber 颗 / 共 $rounds 颗',
-                      style: TextStyle(
-                        fontSize: 10.5,
-                        color: surfaces.faint,
-                        letterSpacing: 0.3,
+                      const SizedBox(height: 11),
+                      _RoundDots(
+                        rounds: rounds,
+                        completed: completedInCycle,
+                        accent: visuals.accent,
+                        idle: status == PomodoroStatus.idle,
                       ),
-                    ),
-                  ],
-                ],
-              ),
+                      const SizedBox(height: 12),
+                      Text(
+                        taskTitle ?? phase.subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          height: 1.4,
+                          color: surfaces.muted,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      if (phase == PomodoroPhase.focus) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          '第 $roundNumber 颗 / 共 $rounds 颗',
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            color: surfaces.faint,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

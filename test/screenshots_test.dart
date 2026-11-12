@@ -94,6 +94,38 @@ void main() {
     }
   }, skip: !_runGoldens);
 
+  testWidgets('生成宽屏截图', (tester) async {
+    debugDisableShadows = false;
+    try {
+      await _prepare(tester, logicalSize: const Size(1280, 800));
+      await _pumpApp(tester, _seedStorage());
+      await expectLater(
+        find.byType(HomeShell),
+        matchesGoldenFile('goldens/08-wide-focus.png'),
+      );
+      await tester.tap(find.byIcon(Icons.checklist_rounded));
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(HomeShell),
+        matchesGoldenFile('goldens/09-wide-tasks.png'),
+      );
+      await tester.tap(find.byIcon(Icons.insights_outlined));
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(HomeShell),
+        matchesGoldenFile('goldens/10-wide-stats.png'),
+      );
+      await tester.tap(find.byIcon(Icons.person_outline_rounded));
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(HomeShell),
+        matchesGoldenFile('goldens/11-wide-settings.png'),
+      );
+    } finally {
+      debugDisableShadows = true;
+    }
+  }, skip: !_runGoldens);
+
   testWidgets('生成任务编辑截图', (tester) async {
     debugDisableShadows = false;
     try {
@@ -130,16 +162,13 @@ Future<void> _prepare(
 
 Future<void> _pumpApp(WidgetTester tester, MemoryStorage storage) async {
   await tester.pumpWidget(
-    LuoFanqieBootstrap(
-      storage: storage,
-      clock: () => DateTime(2026, 11, 10, 19, 0),
-    ),
+    LuoFanqieBootstrap(storage: storage, clock: () => DateTime.now()),
   );
   await tester.pumpAndSettle();
 }
 
 MemoryStorage _seedStorage({AppThemeMode themeMode = AppThemeMode.light}) {
-  final now = DateTime(2026, 11, 10, 19, 0);
+  final now = DateTime.now();
   final today = startOfDay(now);
   final tasks = <Task>[
     Task(

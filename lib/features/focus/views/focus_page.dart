@@ -42,66 +42,302 @@ class FocusPage extends StatelessWidget {
         ? 0.0
         : stats.todayMinutes / settings.dailyGoalMinutes;
 
+    final phaseSwitch = _PhaseSwitch(timer: timer);
+    final dial = TimerDial(
+      phase: timer.phase,
+      status: timer.status,
+      progress: timer.progress,
+      remainingLabel: timer.remainingLabel,
+      roundNumber: timer.roundNumber,
+      rounds: settings.roundsPerLongBreak,
+      completedInCycle: timer.completedInCycle,
+      taskTitle: selected?.title,
+      maxSize: dialMax,
+    );
+    final wideDial = TimerDial(
+      phase: timer.phase,
+      status: timer.status,
+      progress: timer.progress,
+      remainingLabel: timer.remainingLabel,
+      roundNumber: timer.roundNumber,
+      rounds: settings.roundsPerLongBreak,
+      completedInCycle: timer.completedInCycle,
+      taskTitle: selected?.title,
+      maxSize: math.min(360, screenHeight * 0.46),
+    );
+    final controls = _TimerControls(timer: timer);
+    final taskCard = _FocusTaskCard(timer: timer, task: selected);
+    final goalCard = _GoalCard(
+      todayMinutes: stats.todayMinutes,
+      todaySessions: stats.todaySessions,
+      streak: stats.streak,
+      goalMinutes: settings.dailyGoalMinutes,
+      progress: goalProgress,
+    );
+    final quote = Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.eco_rounded, size: 13, color: context.surfaces.faint),
+        const SizedBox(width: 5),
+        Text(
+          '慢一点，也是在往前走。',
+          style: TextStyle(
+            fontSize: 11.5,
+            letterSpacing: 0.4,
+            color: context.surfaces.faint,
+          ),
+        ),
+      ],
+    );
+
     return SafeArea(
       bottom: false,
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 560),
-            child: Column(
-              children: [
-                _BrandBar(now: now),
-                const SizedBox(height: 18),
-                _PhaseSwitch(timer: timer),
-                const SizedBox(height: 12),
-                TimerDial(
-                  phase: timer.phase,
-                  status: timer.status,
-                  progress: timer.progress,
-                  remainingLabel: timer.remainingLabel,
-                  roundNumber: timer.roundNumber,
-                  rounds: settings.roundsPerLongBreak,
-                  completedInCycle: timer.completedInCycle,
-                  taskTitle: selected?.title,
-                  maxSize: dialMax,
-                ),
-                const SizedBox(height: 12),
-                _TimerControls(timer: timer),
-                const SizedBox(height: 18),
-                _FocusTaskCard(timer: timer, task: selected),
-                const SizedBox(height: 14),
-                _GoalCard(
-                  todayMinutes: stats.todayMinutes,
-                  todaySessions: stats.todaySessions,
-                  streak: stats.streak,
-                  goalMinutes: settings.dailyGoalMinutes,
-                  progress: goalProgress,
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final wide = constraints.maxWidth >= 760;
+                if (!wide) {
+                  return Column(
+                    children: [
+                      _BrandBar(now: now),
+                      const SizedBox(height: 18),
+                      phaseSwitch,
+                      const SizedBox(height: 12),
+                      dial,
+                      const SizedBox(height: 12),
+                      controls,
+                      const SizedBox(height: 18),
+                      taskCard,
+                      const SizedBox(height: 14),
+                      goalCard,
+                      const SizedBox(height: 14),
+                      quote,
+                    ],
+                  );
+                }
+                return Column(
                   children: [
-                    Icon(
-                      Icons.eco_rounded,
-                      size: 13,
-                      color: context.surfaces.faint,
+                    _BrandBar(now: now),
+                    const SizedBox(height: 22),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 6,
+                          child: Column(
+                            children: [
+                              phaseSwitch,
+                              const SizedBox(height: 12),
+                              wideDial,
+                              const SizedBox(height: 12),
+                              controls,
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 28),
+                        Expanded(
+                          flex: 5,
+                          child: Column(
+                            children: [
+                              taskCard,
+                              const SizedBox(height: 14),
+                              goalCard,
+                              const SizedBox(height: 14),
+                              _TodayFocusCard(stats: stats, now: now),
+                              const SizedBox(height: 14),
+                              _FocusTipCard(phase: timer.phase),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 5),
-                    Text(
-                      '慢一点，也是在往前走。',
+                    const SizedBox(height: 18),
+                    quote,
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TodayFocusCard extends StatelessWidget {
+  const _TodayFocusCard({required this.stats, required this.now});
+
+  final StatsController stats;
+  final DateTime now;
+
+  @override
+  Widget build(BuildContext context) {
+    final sessions = stats.sessionsOn(now).take(3).toList(growable: false);
+    final surfaces = context.surfaces;
+    final scheme = Theme.of(context).colorScheme;
+    return SoftCard(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+      radius: 24,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionTitle(
+            title: '今日足迹',
+            subtitle: '${stats.todayMinutes} 分钟 · ${stats.todaySessions} 颗番茄',
+            trailing: Icon(
+              Icons.insights_rounded,
+              size: 17,
+              color: surfaces.faint,
+            ),
+          ),
+          const SizedBox(height: 10),
+          if (sessions.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.local_florist_outlined,
+                    size: 18,
+                    color: surfaces.faint,
+                  ),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: Text(
+                      '今天还没有专注记录。选一颗任务，种下第一颗番茄。',
                       style: TextStyle(
                         fontSize: 11.5,
-                        letterSpacing: 0.4,
-                        color: context.surfaces.faint,
+                        height: 1.5,
+                        color: surfaces.muted,
                       ),
                     ),
-                  ],
+                  ),
+                ],
+              ),
+            )
+          else
+            for (var i = 0; i < sessions.length; i += 1) ...[
+              Row(
+                children: [
+                  Container(
+                    width: 26,
+                    height: 26,
+                    decoration: BoxDecoration(
+                      color: scheme.primary.withValues(
+                        alpha: context.isDark ? 0.18 : 0.08,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.timer_outlined,
+                      size: 13,
+                      color: scheme.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: Text(
+                      sessions[i].taskTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 12, color: context.onSurface),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    clockLabel(sessions[i].endedAt),
+                    style: TextStyle(fontSize: 10, color: surfaces.faint),
+                  ),
+                  const SizedBox(width: 7),
+                  Text(
+                    '${sessions[i].minutes}′',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: surfaces.muted,
+                    ),
+                  ),
+                ],
+              ),
+              if (i != sessions.length - 1)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 7),
+                  child: Divider(
+                    height: 1,
+                    color: surfaces.border.withValues(alpha: 0.5),
+                  ),
+                ),
+            ],
+        ],
+      ),
+    );
+  }
+}
+
+class _FocusTipCard extends StatelessWidget {
+  const _FocusTipCard({required this.phase});
+
+  final PomodoroPhase phase;
+
+  @override
+  Widget build(BuildContext context) {
+    final (title, text, icon) = switch (phase) {
+      PomodoroPhase.focus => (
+        '专注提示',
+        '把手机翻个面。此刻只做一件事，剩下的等番茄落袋再说。',
+        Icons.visibility_outlined,
+      ),
+      PomodoroPhase.shortBreak => (
+        '小憩提示',
+        '站起来伸个懒腰，看看六米以外的风景。',
+        Icons.eco_outlined,
+      ),
+      PomodoroPhase.longBreak => (
+        '长休息提示',
+        '泡杯茶，让眼睛和大脑都真正离开屏幕一会儿。',
+        Icons.nights_stay_outlined,
+      ),
+    };
+    final surfaces = context.surfaces;
+    return SoftCard(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      radius: 22,
+      color: surfaces.cardMuted.withValues(alpha: 0.55),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: surfaces.faint),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: surfaces.muted,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  text,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    height: 1.6,
+                    color: surfaces.faint,
+                  ),
                 ),
               ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }

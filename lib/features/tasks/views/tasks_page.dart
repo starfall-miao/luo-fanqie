@@ -44,7 +44,7 @@ class _TasksPageState extends State<TasksPage> {
         padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 620),
+            constraints: const BoxConstraints(maxWidth: 1200),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -98,20 +98,53 @@ class _TasksPageState extends State<TasksPage> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                if (visible.isEmpty)
-                  _EmptyTasks(filter: _filter)
-                else
-                  for (var i = 0; i < visible.length; i += 1) ...[
-                    _TaskTile(
-                      task: visible[i],
-                      selected: visible[i].id == selectedTaskId,
-                      onTap: () => showTaskEditor(context, task: visible[i]),
-                      onStart: widget.onStartFocus == null
-                          ? null
-                          : () => widget.onStartFocus!(visible[i].id),
-                    ),
-                    if (i != visible.length - 1) const SizedBox(height: 10),
-                  ],
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    if (visible.isEmpty) {
+                      return _EmptyTasks(filter: _filter);
+                    }
+                    final wide = constraints.maxWidth >= 760;
+                    if (wide) {
+                      final width = (constraints.maxWidth - 12) / 2;
+                      return Wrap(
+                        spacing: 12,
+                        runSpacing: 10,
+                        children: [
+                          for (final task in visible)
+                            SizedBox(
+                              width: width,
+                              child: _TaskTile(
+                                task: task,
+                                selected: task.id == selectedTaskId,
+                                onTap: () =>
+                                    showTaskEditor(context, task: task),
+                                onStart: widget.onStartFocus == null
+                                    ? null
+                                    : () => widget.onStartFocus!(task.id),
+                              ),
+                            ),
+                        ],
+                      );
+                    }
+                    return Column(
+                      children: [
+                        for (var i = 0; i < visible.length; i += 1) ...[
+                          _TaskTile(
+                            task: visible[i],
+                            selected: visible[i].id == selectedTaskId,
+                            onTap: () =>
+                                showTaskEditor(context, task: visible[i]),
+                            onStart: widget.onStartFocus == null
+                                ? null
+                                : () => widget.onStartFocus!(visible[i].id),
+                          ),
+                          if (i != visible.length - 1)
+                            const SizedBox(height: 10),
+                        ],
+                      ],
+                    );
+                  },
+                ),
                 if (visible.isNotEmpty) ...[
                   const SizedBox(height: 20),
                   Center(

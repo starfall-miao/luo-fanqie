@@ -30,110 +30,152 @@ class StatsPage extends StatelessWidget {
         ? 0.0
         : stats.todayMinutes / settings.dailyGoalMinutes;
 
+    final header = PageHeader(
+      eyebrow: '专注足迹',
+      title: '时间留下的形状',
+      subtitle: '每一颗番茄，都是一段被认真对待的时间。',
+      trailing: InfoPill(
+        icon: Icons.calendar_month_rounded,
+        label: '${now.month}月',
+      ),
+    );
+    final hero = _TodayHero(
+      minutes: stats.todayMinutes,
+      sessions: stats.todaySessions,
+      streak: stats.streak,
+      goal: settings.dailyGoalMinutes,
+      progress: goalProgress,
+    );
+    final strip = _StatStrip(
+      streak: stats.streak,
+      weekSessions: stats.weekSessions,
+      totalMinutes: stats.totalMinutes,
+    );
+    final chartCard = SoftCard(
+      padding: const EdgeInsets.fromLTRB(18, 17, 18, 12),
+      radius: 26,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionTitle(
+            title: '近 7 天',
+            subtitle: '每天专注的分钟数',
+            trailing: Text(
+              '共 $weekMinutes 分钟',
+              style: TextStyle(fontSize: 11, color: context.surfaces.muted),
+            ),
+          ),
+          const SizedBox(height: 6),
+          WeeklyFocusChart(days: last7),
+        ],
+      ),
+    );
+    final heatmapCard = SoftCard(
+      padding: const EdgeInsets.fromLTRB(18, 17, 18, 16),
+      radius: 26,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionTitle(
+            title: '专注热力',
+            subtitle: '最近 12 周 · 每格是一天',
+            trailing: Text(
+              '连续 ${stats.streak} 天',
+              style: TextStyle(fontSize: 11, color: context.surfaces.muted),
+            ),
+          ),
+          const SizedBox(height: 16),
+          FocusHeatmap(days: heatmapDays),
+        ],
+      ),
+    );
+    final recent = _RecentSessions(sessions: stats.recent(limit: 5));
+    final quote = Center(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.eco_rounded, size: 13, color: context.surfaces.faint),
+          const SizedBox(width: 5),
+          Text(
+            '种下的时间，终会发芽。',
+            style: TextStyle(
+              fontSize: 11,
+              letterSpacing: 0.4,
+              color: context.surfaces.faint,
+            ),
+          ),
+        ],
+      ),
+    );
+
     return SafeArea(
       bottom: false,
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 680),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                PageHeader(
-                  eyebrow: '专注足迹',
-                  title: '时间留下的形状',
-                  subtitle: '每一颗番茄，都是一段被认真对待的时间。',
-                  trailing: InfoPill(
-                    icon: Icons.calendar_month_rounded,
-                    label: '${now.month}月',
-                  ),
-                ),
-                const SizedBox(height: 20),
-                _TodayHero(
-                  minutes: stats.todayMinutes,
-                  sessions: stats.todaySessions,
-                  streak: stats.streak,
-                  goal: settings.dailyGoalMinutes,
-                  progress: goalProgress,
-                ),
-                const SizedBox(height: 12),
-                _StatStrip(
-                  streak: stats.streak,
-                  weekSessions: stats.weekSessions,
-                  totalMinutes: stats.totalMinutes,
-                ),
-                const SizedBox(height: 14),
-                SoftCard(
-                  padding: const EdgeInsets.fromLTRB(18, 17, 18, 12),
-                  radius: 26,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final wide = constraints.maxWidth >= 760;
+                if (!wide) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      SectionTitle(
-                        title: '近 7 天',
-                        subtitle: '每天专注的分钟数',
-                        trailing: Text(
-                          '共 $weekMinutes 分钟',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: context.surfaces.muted,
+                      header,
+                      const SizedBox(height: 20),
+                      hero,
+                      const SizedBox(height: 12),
+                      strip,
+                      const SizedBox(height: 14),
+                      chartCard,
+                      const SizedBox(height: 14),
+                      heatmapCard,
+                      const SizedBox(height: 14),
+                      recent,
+                      const SizedBox(height: 18),
+                      quote,
+                    ],
+                  );
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    header,
+                    const SizedBox(height: 20),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 5,
+                          child: Column(
+                            children: [
+                              hero,
+                              const SizedBox(height: 12),
+                              strip,
+                              const SizedBox(height: 14),
+                              heatmapCard,
+                            ],
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 6),
-                      WeeklyFocusChart(days: last7),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
-                SoftCard(
-                  padding: const EdgeInsets.fromLTRB(18, 17, 18, 16),
-                  radius: 26,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SectionTitle(
-                        title: '专注热力',
-                        subtitle: '最近 12 周 · 每格是一天',
-                        trailing: Text(
-                          '连续 ${stats.streak} 天',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: context.surfaces.muted,
+                        const SizedBox(width: 18),
+                        Expanded(
+                          flex: 6,
+                          child: Column(
+                            children: [
+                              chartCard,
+                              const SizedBox(height: 14),
+                              recent,
+                            ],
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      FocusHeatmap(days: heatmapDays),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
-                _RecentSessions(sessions: stats.recent(limit: 5)),
-                const SizedBox(height: 18),
-                Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.eco_rounded,
-                        size: 13,
-                        color: context.surfaces.faint,
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        '种下的时间，终会发芽。',
-                        style: TextStyle(
-                          fontSize: 11,
-                          letterSpacing: 0.4,
-                          color: context.surfaces.faint,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    quote,
+                  ],
+                );
+              },
             ),
           ),
         ),

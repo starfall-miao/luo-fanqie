@@ -27,6 +27,14 @@
   <img src="docs/screenshots/07-task-editor.png" width="240" alt="新建任务" />
 </p>
 
+<p align="center">
+  <img src="docs/screenshots/08-wide-focus.png" width="300" alt="宽屏专注页" />
+  <img src="docs/screenshots/09-wide-tasks.png" width="300" alt="宽屏任务页" />
+  <img src="docs/screenshots/10-wide-stats.png" width="300" alt="宽屏统计页" />
+  <br />
+  <sub>1280 × 800 宽屏布局：专注页左右分栏、任务双列、统计分栏</sub>
+</p>
+
 ---
 
 ## 下载 Beta
@@ -92,6 +100,8 @@
 - 黄昏海面背景 + 毛玻璃卡片 + 暮色番茄配色。
 - 跟随系统 / 浅色 / 深色。
 - 手机底部胶囊导航，宽屏（≥ 980dp）自动切换为侧边导航。
+- 平板 / 桌面横屏使用双栏或双列布局：专注页左右分栏、任务卡片双列、统计图表分栏，不再把内容挤在屏幕中央。
+- 应用图标已替换为用户提供的原创插画。
 - 无账号、无广告、无第三方统计 SDK；不联网也能完整使用。
 
 ---
@@ -143,7 +153,7 @@ flutter build apk --release
 ## 测试与 CI
 
 ```bash
-flutter test          # 39 项单元 / 组件测试（截图测试默认跳过）
+flutter test          # 40 项单元 / 组件测试（截图测试默认跳过）
 dart analyze
 ```
 
@@ -226,4 +236,4 @@ android/ · ios/ · macos/ · windows/ · linux/ · web/   # 平台工程
 
 如果这颗番茄对你有一点用，欢迎点一个 Star，或者去种下今天的第一个 25 分钟。
 
-<sub>当前版本：1.2.0 · Beta</sub>
+<sub>当前版本：1.2.1 · Beta</sub>

@@ -155,7 +155,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 22, 8, 22),
                     child: SizedBox(
-                      width: 224,
+                      width: 184,
                       child: _SideRail(
                         index: _index,
                         onSelected: _goTo,
@@ -397,7 +397,7 @@ class _SideRail extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(10),
             child: Text(
-              '慢一点，也是在往前走。\n\nv1.2.0',
+              '慢一点，也是在往前走。\n\nv1.2.1',
               style: TextStyle(
                 height: 1.7,
                 fontSize: 11,
