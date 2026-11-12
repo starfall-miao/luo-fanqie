@@ -134,10 +134,12 @@ class PomodoroController extends ChangeNotifier {
     }
   }
 
-  void start() {
+  void start({int? focusMinutes}) {
     if (isRunning || remainingMillis <= 0) return;
     if (isIdle) {
-      _totalMillis = durationFor(_phase);
+      _totalMillis = _phase == PomodoroPhase.focus && focusMinutes != null
+          ? focusMinutes.clamp(1, 180) * 60 * 1000
+          : durationFor(_phase);
       _remainingMillis = _totalMillis;
     }
     _phaseStartedAt ??= _now();
@@ -279,7 +281,9 @@ class PomodoroController extends ChangeNotifier {
         minutes: minutes,
       );
       final recorded = _stats.record(session);
-      if (recorded && task != null) _tasks.incrementPomodoro(task.id);
+      if (recorded && task != null) {
+        _tasks.recordFocus(task.id, minutes: session.minutes, at: finishedAt);
+      }
       _completedInCycle += 1;
       if (!silent) _feedback();
       justCompleted.value = FocusCompletion(
@@ -310,7 +314,13 @@ class PomodoroController extends ChangeNotifier {
     final shouldAutoStart = wasFocus
         ? _settings.settings.autoStartBreak
         : _settings.settings.autoStartFocus;
-    if (shouldAutoStart) start();
+    if (shouldAutoStart) {
+      start(
+        focusMinutes: _phase == PomodoroPhase.focus
+            ? selectedTask?.focusMinutes
+            : null,
+      );
+    }
   }
 
   void _feedback() {

@@ -121,7 +121,7 @@ class _TaskPickerSheet extends StatelessWidget {
             ],
             const SizedBox(height: 14),
             Text(
-              '剩余 ${tasks.length} 个待办 · 预计 ${tasks.fold<int>(0, (sum, t) => sum + t.estimatedPomodoros)} 颗番茄',
+              '剩余 ${tasks.length} 个待办 · 选一件，先开始',
               style: Theme.of(context).textTheme.bodySmall
                   ?.copyWith(color: surfaces.faint),
             ),
@@ -196,13 +196,23 @@ class _TaskChoiceTile extends StatelessWidget {
                         runSpacing: 3,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          TagChip(label: task.tag, small: true),
+                          if (task.tag.trim().isNotEmpty)
+                            TagChip(label: task.tag, small: true),
                           Text(
-                            '${task.completedPomodoros}/${task.estimatedPomodoros} 颗番茄',
+                            '${task.kind.shortLabel} · ${task.focusMinutes} 分钟/次',
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(fontSize: 11, color: surfaces.muted),
                           ),
-                          if (task.dueDate != null)
+                          if (task.hasTarget)
+                            Text(
+                              '· ${task.progressLabel(DateTime.now())}',
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    fontSize: 11,
+                                    color: surfaces.muted,
+                                  ),
+                            )
+                          else if (task.dueDate != null)
                             Text(
                               '· ${dueDateLabel(task.dueDate!)}',
                               style: Theme.of(context).textTheme.bodySmall

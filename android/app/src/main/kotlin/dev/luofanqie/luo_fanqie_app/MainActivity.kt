@@ -1,8 +1,10 @@
 package dev.luofanqie.luo_fanqie_app
 
 import android.Manifest
+import android.app.ActivityManager
 import android.content.pm.PackageManager
 import android.os.Build
+import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -47,6 +49,53 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            IMMERSIVE_CHANNEL,
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "startLockTask" -> {
+                    try {
+                        val activityManager = getSystemService(ActivityManager::class.java)
+                        if (activityManager?.lockTaskModeState ==
+                            ActivityManager.LOCK_TASK_MODE_NONE
+                        ) {
+                            startLockTask()
+                        }
+                        result.success(null)
+                    } catch (error: Exception) {
+                        result.error("lock_task_failed", error.message, null)
+                    }
+                }
+
+                "stopLockTask" -> {
+                    try {
+                        val activityManager = getSystemService(ActivityManager::class.java)
+                        if (activityManager?.lockTaskModeState !=
+                            ActivityManager.LOCK_TASK_MODE_NONE
+                        ) {
+                            stopLockTask()
+                        }
+                        result.success(null)
+                    } catch (error: Exception) {
+                        result.error("unlock_task_failed", error.message, null)
+                    }
+                }
+
+                "keepScreenOn" -> {
+                    window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    result.success(null)
+                }
+
+                "clearKeepScreenOn" -> {
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    result.success(null)
+                }
+
+                else -> result.notImplemented()
+            }
+        }
     }
 
     private fun requestNotificationPermission() {
@@ -63,6 +112,7 @@ class MainActivity : FlutterActivity() {
 
     companion object {
         private const val NOTIFICATION_CHANNEL = "dev.luofanqie/notifications"
+        private const val IMMERSIVE_CHANNEL = "dev.luofanqie/immersive"
         private const val NOTIFICATION_PERMISSION_REQUEST = 7300
     }
 }

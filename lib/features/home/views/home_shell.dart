@@ -6,13 +6,16 @@ import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/app_background.dart';
+import '../../../shared/widgets/common.dart';
 import '../../../shared/widgets/tomato_mark.dart';
 import '../../focus/views/focus_page.dart';
+import '../../focus/views/session_page.dart';
+import 'landscape_dashboard.dart';
 import '../../settings/views/settings_page.dart';
 import '../../stats/views/stats_page.dart';
 import '../../sync/providers/sync_controller.dart';
 import '../../tasks/views/tasks_page.dart';
-import '../../timer/models/pomodoro_phase.dart';
+import '../../tasks/models/task.dart';
 import '../../timer/providers/pomodoro_controller.dart';
 
 class HomeShell extends StatefulWidget {
@@ -105,28 +108,20 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     setState(() => _index = index);
   }
 
-  void _startFocusForTask(String taskId) {
+  Future<void> _startFocusForTask(Task task) async {
     final timer = context.read<PomodoroController>();
     if (timer.isRunning) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('正在专注中，先暂停再切换任务')));
-      _goTo(0);
+        ..showSnackBar(const SnackBar(content: Text('正在专注中，先暂停再切换待办')));
       return;
     }
-    if (timer.isPaused) timer.reset();
-    if (timer.phase != PomodoroPhase.focus) {
-      timer.switchPhase(PomodoroPhase.focus);
-    }
-    if (!timer.selectTask(taskId)) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('找不到这颗任务了')));
-      return;
-    }
-    timer.start();
-    HapticFeedback.mediumImpact();
-    _goTo(0);
+    await launchFocusSession(context, task: task, resetPaused: true);
+  }
+
+  void _openSettings() {
+    Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => const _SettingsScreen()));
   }
 
   @override
@@ -134,7 +129,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     final surfaces = context.surfaces;
     final pages = <Widget>[
       const FocusPage(),
-      TasksPage(onStartFocus: _startFocusForTask),
+      TasksPage(onStartFocus: (task) => _startFocusForTask(task)),
       const StatsPage(),
       const SettingsPage(),
     ];
@@ -143,35 +138,21 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         backgroundColor: Colors.transparent,
         body: LayoutBuilder(
           builder: (context, constraints) {
-            final wide = constraints.maxWidth >= 980;
-            final content = IndexedStack(index: _index, children: pages);
-            if (!wide) {
-              return content;
+            final landscape =
+                constraints.maxWidth >= 900 &&
+                constraints.maxWidth > constraints.maxHeight;
+            if (landscape) {
+              return LandscapeDashboard(onOpenSettings: _openSettings);
             }
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 22, 8, 22),
-                    child: SizedBox(
-                      width: 184,
-                      child: _SideRail(
-                        index: _index,
-                        onSelected: _goTo,
-                        destinations: _destinations,
-                      ),
-                    ),
-                  ),
-                ),
-                Expanded(child: content),
-              ],
-            );
+            return IndexedStack(index: _index, children: pages);
           },
         ),
         bottomNavigationBar: LayoutBuilder(
           builder: (context, constraints) {
-            if (constraints.maxWidth >= 980) return const SizedBox.shrink();
+            final landscape =
+                constraints.maxWidth >= 900 &&
+                constraints.maxWidth > constraints.maxHeight;
+            if (landscape) return const SizedBox.shrink();
             return SafeArea(
               top: false,
               minimum: const EdgeInsets.fromLTRB(18, 0, 18, 12),
@@ -220,6 +201,51 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               ),
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsScreen extends StatelessWidget {
+  const _SettingsScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: AppBackground(
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 6, 16, 0),
+                child: Row(
+                  children: [
+                    CircleIconButton(
+                      icon: Icons.arrow_back_rounded,
+                      tooltip: '返回',
+                      size: 40,
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '设置',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: context.surfaces.muted,
+                      ),
+                    ),
+                    const Spacer(),
+                    const SizedBox(width: 40),
+                  ],
+                ),
+              ),
+              const Expanded(child: SettingsPage()),
+            ],
+          ),
         ),
       ),
     );
@@ -288,124 +314,6 @@ class _NavItem extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _SideRail extends StatelessWidget {
-  const _SideRail({
-    required this.index,
-    required this.onSelected,
-    required this.destinations,
-  });
-
-  final int index;
-  final ValueChanged<int> onSelected;
-  final List<_Destination> destinations;
-
-  @override
-  Widget build(BuildContext context) {
-    final surfaces = context.surfaces;
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: surfaces.card.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: surfaces.border.withValues(alpha: 0.8)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 26),
-            child: Row(
-              children: [
-                const TomatoMark(size: 34, withGlow: true),
-                const SizedBox(width: 10),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '落·番茄',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontFamily: 'serif',
-                        fontFamilyFallback: const [
-                          'Songti SC',
-                          'Noto Serif CJK SC',
-                          'SimSun',
-                        ],
-                      ),
-                    ),
-                    Text(
-                      '把时间种成番茄',
-                      style: TextStyle(
-                        fontSize: 10,
-                        letterSpacing: 0.6,
-                        color: surfaces.muted,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          for (var i = 0; i < destinations.length; i += 1)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Material(
-                color: i == index
-                    ? scheme.primary.withValues(alpha: 0.11)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(16),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () => onSelected(i),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          i == index
-                              ? destinations[i].selectedIcon
-                              : destinations[i].icon,
-                          size: 20,
-                          color: i == index ? scheme.primary : surfaces.muted,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          destinations[i].label,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: i == index
-                                ? FontWeight.w700
-                                : FontWeight.w500,
-                            color: i == index ? scheme.primary : surfaces.muted,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          const Spacer(),
-          Padding(
-            padding: const EdgeInsets.all(10),
-            child: Text(
-              '慢一点，也是在往前走。\n\nv1.2.1',
-              style: TextStyle(
-                height: 1.7,
-                fontSize: 11,
-                color: surfaces.faint,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

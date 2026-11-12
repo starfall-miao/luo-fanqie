@@ -24,7 +24,26 @@ abstract final class AppPalette {
     '运动': Color(0xFFE09F3E),
   };
 
-  static Color tag(String tag) => _tagColors[tag] ?? tomato;
+  static Color tag(String tag) {
+    final known = _tagColors[tag];
+    if (known != null) return known;
+    if (tag.trim().isEmpty) return tomato;
+    final hash = tag.runes.fold<int>(
+      0,
+      (sum, rune) => (sum * 31 + rune) & 0x7fffffff,
+    );
+    const palette = <Color>[
+      tomato,
+      sky,
+      sage,
+      Color(0xFFA98467),
+      Color(0xFFE09F3E),
+      plum,
+      Color(0xFF4F9478),
+      Color(0xFFB06A8E),
+    ];
+    return palette[hash % palette.length];
+  }
 
   static Color tagSoft(String tag, Brightness brightness) {
     final base = AppPalette.tag(tag);

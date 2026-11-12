@@ -209,6 +209,14 @@ class SettingsPage extends StatelessWidget {
                           ),
                           _RowDivider(),
                           _SwitchRow(
+                            icon: Icons.shield_moon_outlined,
+                            title: '学霸模式',
+                            subtitle: '全屏固定，禁止暂停与最小化（Android 屏幕固定）',
+                            value: settings.strictMode,
+                            onChanged: settingsController.setStrictMode,
+                          ),
+                          _RowDivider(),
+                          _SwitchRow(
                             icon: Icons.volume_up_outlined,
                             title: '声音提醒',
                             subtitle: '番茄完成时播放提示音',
@@ -379,11 +387,11 @@ class SettingsPage extends StatelessWidget {
                             icon: Icons.info_outline_rounded,
                             title: '版本',
                             subtitle: '落·番茄',
-                            value: '1.2.1',
+                            value: '1.3.0',
                             onTap: () => showLicensePage(
                               context: context,
                               applicationName: '落·番茄',
-                              applicationVersion: '1.2.1',
+                              applicationVersion: '1.3.0',
                               applicationLegalese: '把时间种成番茄。',
                             ),
                           ),

@@ -94,32 +94,40 @@ void main() {
     }
   }, skip: !_runGoldens);
 
-  testWidgets('生成宽屏截图', (tester) async {
+  testWidgets('生成宽屏仪表盘与沉浸专注截图', (tester) async {
     debugDisableShadows = false;
     try {
       await _prepare(tester, logicalSize: const Size(1280, 800));
       await _pumpApp(tester, _seedStorage());
       await expectLater(
         find.byType(HomeShell),
-        matchesGoldenFile('goldens/08-wide-focus.png'),
+        matchesGoldenFile('goldens/08-wide-dashboard.png'),
       );
-      await tester.tap(find.byIcon(Icons.checklist_rounded));
+
+      await tester.tap(find.byTooltip('设置'));
       await tester.pumpAndSettle();
       await expectLater(
-        find.byType(HomeShell),
-        matchesGoldenFile('goldens/09-wide-tasks.png'),
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/09-wide-settings.png'),
       );
-      await tester.tap(find.byIcon(Icons.insights_outlined));
+      await tester.tap(find.byTooltip('返回'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('新建待办'));
       await tester.pumpAndSettle();
       await expectLater(
-        find.byType(HomeShell),
-        matchesGoldenFile('goldens/10-wide-stats.png'),
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/10-wide-task-editor.png'),
       );
-      await tester.tap(find.byIcon(Icons.person_outline_rounded));
+      await tester.tap(find.byTooltip('关闭'));
       await tester.pumpAndSettle();
+
+      await tester.tap(find.text('快速开始一颗番茄'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
       await expectLater(
-        find.byType(HomeShell),
-        matchesGoldenFile('goldens/11-wide-settings.png'),
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/11-session.png'),
       );
     } finally {
       debugDisableShadows = true;
@@ -187,16 +195,27 @@ MemoryStorage _seedStorage({AppThemeMode themeMode = AppThemeMode.light}) {
       title: '读完《深度工作》第三章',
       estimatedPomodoros: 2,
       priority: TaskPriority.medium,
-      tag: '阅读',
+      tag: '阅读计划',
+      kind: TaskKind.goal,
+      focusMinutes: 30,
+      targetAmount: 4,
+      targetUnit: TaskUnit.hours,
+      progressAmount: 2,
       dueDate: addDays(today, 1),
       createdAt: now.subtract(const Duration(hours: 4)),
     ),
     Task(
       id: 't3',
-      title: '给阳台的番茄浇水',
+      title: '每天散步 30 分钟',
       estimatedPomodoros: 1,
       priority: TaskPriority.low,
-      tag: '生活',
+      tag: '运动',
+      kind: TaskKind.habit,
+      focusMinutes: 25,
+      targetAmount: 30,
+      targetUnit: TaskUnit.minutes,
+      progressAmount: 20,
+      progressPeriodKey: 'day-${dateKey(today)}',
       createdAt: now.subtract(const Duration(hours: 5)),
     ),
     Task(
@@ -299,7 +318,7 @@ Future<void> _loadFonts() async {
   final home = Platform.environment['HOME'] ?? '';
   final flutterRoot =
       Platform.environment['FLUTTER_ROOT'] ?? '$home/flutter_sdk';
-  final cjk = File('/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf');
+  final cjk = File('test/fonts/ScreenshotCJK.otf');
   final iconFont = File(
     '$flutterRoot/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
   );

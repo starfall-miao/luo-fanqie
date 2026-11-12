@@ -16,6 +16,7 @@ import '../../tasks/providers/task_controller.dart';
 import '../../timer/models/pomodoro_phase.dart';
 import '../../timer/providers/pomodoro_controller.dart';
 import '../../timer/theme/phase_style.dart';
+import 'session_page.dart';
 import 'widgets/task_picker_sheet.dart';
 import 'widgets/timer_dial.dart';
 
@@ -523,7 +524,11 @@ class _TimerControls extends StatelessWidget {
               child: GestureDetector(
                 onTap: () {
                   HapticFeedback.mediumImpact();
-                  timer.toggle();
+                  if (timer.isRunning) {
+                    timer.pause();
+                  } else {
+                    launchFocusSession(context);
+                  }
                 },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 250),
@@ -579,6 +584,12 @@ class _TimerControls extends StatelessWidget {
             letterSpacing: 0.2,
           ),
         ),
+        if (timer.isRunning)
+          TextButton.icon(
+            onPressed: () => launchFocusSession(context),
+            icon: const Icon(Icons.open_in_full_rounded, size: 14),
+            label: const Text('进入沉浸专注'),
+          ),
       ],
     );
   }
@@ -593,7 +604,8 @@ class _FocusTaskCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
-    final tag = task?.tag;
+    final currentTask = task;
+    final tag = currentTask?.tag;
     final accent = tag == null ? context.primary : AppPalette.tag(tag);
     return SoftCard(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -631,11 +643,11 @@ class _FocusTaskCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  task == null
+                  currentTask == null
                       ? '选一颗待办，让每颗番茄都有落处'
-                      : (tag == null
-                            ? '专注收获会记在这项任务上'
-                            : '$tag · 已收获 ${task?.completedPomodoros} / ${task?.estimatedPomodoros} 颗番茄'),
+                      : (currentTask.hasTarget
+                            ? '${currentTask.isHabit ? currentTask.scheduleLabel() : currentTask.kind.shortLabel} · ${currentTask.focusMinutes} 分钟/次 · ${currentTask.progressLabel(DateTime.now())}'
+                            : '${currentTask.kind.shortLabel} · ${currentTask.focusMinutes} 分钟/次 · 已收获 ${currentTask.completedPomodoros} 颗番茄'),
                   style: TextStyle(fontSize: 11.5, color: surfaces.muted),
                 ),
               ],

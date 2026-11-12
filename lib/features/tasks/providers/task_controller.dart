@@ -131,10 +131,32 @@ class TaskController extends ChangeNotifier {
     update(next);
   }
 
-  void incrementPomodoro(String id) {
+  /// 记录一次完成的专注：普通任务累计番茄数，目标/习惯累计进度。
+  void recordFocus(String id, {required int minutes, DateTime? at}) {
     final task = taskById(id);
     if (task == null) return;
-    update(task.copyWith(completedPomodoros: task.completedPomodoros + 1));
+    final now = at ?? _now();
+    final periodKey = task.periodKeyFor(now);
+    var progress = task.effectiveProgress(now);
+    if (task.isHabit && task.progressPeriodKey != periodKey) {
+      progress = 0;
+    }
+    if (task.hasTarget) {
+      progress += task.amountForFocus(minutes);
+    }
+    update(
+      task.copyWith(
+        completedPomodoros: task.completedPomodoros + 1,
+        progressAmount: task.hasTarget ? progress : task.progressAmount,
+        progressPeriodKey: task.isHabit ? periodKey : task.progressPeriodKey,
+      ),
+    );
+  }
+
+  void incrementPomodoro(String id, {int? minutes}) {
+    final task = taskById(id);
+    if (task == null) return;
+    recordFocus(id, minutes: minutes ?? task.focusMinutes);
   }
 
   int clearCompleted() {
@@ -228,29 +250,39 @@ class TaskController extends ChangeNotifier {
     return [
       Task(
         id: newId('task'),
-        title: '写下今天最重要的一件事',
+        title: '完成落·番茄的首页设计',
         notes: '把它拆小一点，然后专心完成第一颗番茄。',
-        estimatedPomodoros: 1,
+        estimatedPomodoros: 4,
         priority: TaskPriority.high,
-        tag: '生活',
+        tag: '工作',
         dueDate: today,
+        focusMinutes: 25,
         createdAt: now,
       ),
       Task(
         id: newId('task'),
-        title: '阅读 20 页书',
-        estimatedPomodoros: 2,
+        title: '本周阅读 4 小时',
+        notes: '读完手头这本书，把喜欢的句子记下来。',
+        kind: TaskKind.goal,
+        focusMinutes: 30,
+        targetAmount: 4,
+        targetUnit: TaskUnit.hours,
         priority: TaskPriority.medium,
         tag: '阅读',
-        dueDate: addDays(today, 1),
+        dueDate: addDays(today, 7),
         createdAt: now.subtract(const Duration(minutes: 1)),
       ),
       Task(
         id: newId('task'),
-        title: '整理桌面，给番茄苗浇水',
-        estimatedPomodoros: 1,
+        title: '每天阅读 30 分钟',
+        notes: '给每天留一小段安静的阅读时间。',
+        kind: TaskKind.habit,
+        focusMinutes: 25,
+        targetAmount: 30,
+        targetUnit: TaskUnit.minutes,
+        habitSchedule: HabitSchedule.daily,
         priority: TaskPriority.low,
-        tag: '生活',
+        tag: '阅读',
         createdAt: now.subtract(const Duration(minutes: 2)),
       ),
     ];

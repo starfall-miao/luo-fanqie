@@ -2,6 +2,7 @@ import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:luo_fanqie_app/core/notifications/timer_notification_service.dart';
+import 'package:luo_fanqie_app/core/utils/date_utils.dart';
 import 'package:luo_fanqie_app/core/storage/key_value_storage.dart';
 import 'package:luo_fanqie_app/features/settings/models/app_settings.dart';
 import 'package:luo_fanqie_app/features/settings/providers/settings_controller.dart';
@@ -24,7 +25,14 @@ void main() {
         estimatedPomodoros: 3,
         completedPomodoros: 1,
         priority: TaskPriority.high,
-        tag: '工作',
+        tag: '我的自定义标签',
+        kind: TaskKind.goal,
+        focusMinutes: 30,
+        targetAmount: 2.5,
+        targetUnit: TaskUnit.hours,
+        habitSchedule: HabitSchedule.weeklyQuota,
+        weekdays: const [1, 3, 5],
+        progressAmount: 1.5,
         dueDate: DateTime(2026, 11, 9),
         createdAt: fixedNow,
       );
@@ -33,7 +41,13 @@ void main() {
       expect(restored.notes, '先列提纲');
       expect(restored.estimatedPomodoros, 3);
       expect(restored.priority, TaskPriority.high);
-      expect(restored.tag, '工作');
+      expect(restored.tag, '我的自定义标签');
+      expect(restored.kind, TaskKind.goal);
+      expect(restored.focusMinutes, 30);
+      expect(restored.targetAmount, 2.5);
+      expect(restored.targetUnit, TaskUnit.hours);
+      expect(restored.weekdays, [1, 3, 5]);
+      expect(restored.progressAmount, 1.5);
       expect(restored.dueDate, DateTime(2026, 11, 9));
       expect(restored.done, isFalse);
     });
@@ -76,6 +90,67 @@ void main() {
 
       controller.incrementPomodoro('task-new');
       expect(controller.taskById('task-new')!.completedPomodoros, 1);
+    });
+
+    test('目标按专注分钟累计，习惯按周期重置', () {
+      final storage = MemoryStorage();
+      final controller = TaskController(storage, clock: () => fixedNow);
+      final goal = Task(
+        id: 'goal',
+        title: '阅读 4 小时',
+        createdAt: fixedNow,
+        kind: TaskKind.goal,
+        focusMinutes: 30,
+        targetAmount: 4,
+        targetUnit: TaskUnit.hours,
+      );
+      final habit = Task(
+        id: 'habit',
+        title: '每天阅读 30 分钟',
+        createdAt: fixedNow,
+        kind: TaskKind.habit,
+        targetAmount: 30,
+        targetUnit: TaskUnit.minutes,
+        progressPeriodKey: 'day-${dateKey(fixedNow)}',
+        progressAmount: 20,
+      );
+      controller.add(goal);
+      controller.add(habit);
+
+      controller.recordFocus('goal', minutes: 30, at: fixedNow);
+      expect(controller.taskById('goal')!.completedPomodoros, 1);
+      expect(controller.taskById('goal')!.progressAmount, 0.5);
+
+      controller.recordFocus('habit', minutes: 25, at: fixedNow);
+      expect(controller.taskById('habit')!.progressAmount, 45);
+
+      controller.recordFocus('habit', minutes: 25, at: addDays(fixedNow, 1));
+      expect(controller.taskById('habit')!.progressAmount, 25);
+
+      final custom = Task(
+        id: 'custom',
+        title: '跨设备同步',
+        createdAt: fixedNow,
+        tag: '我的标签',
+        focusMinutes: 20,
+      );
+      controller.add(custom);
+      expect(controller.taskById('custom')!.tag, '我的标签');
+    });
+
+    test('每个待办可以覆盖单次专注时长', () {
+      fakeAsync((async) {
+        final base = DateTime(2026, 11, 8, 9);
+        final harness = _Harness(clock: () => base.add(async.elapsed));
+        final task = harness.tasks.pending.first.copyWith(focusMinutes: 40);
+        harness.tasks.update(task);
+        harness.timer.selectTask(task.id);
+        harness.timer.start(focusMinutes: task.focusMinutes);
+        expect(harness.timer.totalMillis, 40 * 60 * 1000);
+        async.elapse(const Duration(minutes: 40, seconds: 1));
+        expect(harness.stats.todayMinutes, 40);
+        harness.dispose();
+      });
     });
 
     test('排序把未完成和高优先级放在前面', () {

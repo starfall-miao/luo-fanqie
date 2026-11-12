@@ -15,6 +15,7 @@ class AppSettings {
     this.soundEnabled = true,
     this.hapticsEnabled = true,
     this.notificationsEnabled = true,
+    this.strictMode = false,
     this.themeMode = AppThemeMode.system,
   });
 
@@ -28,6 +29,7 @@ class AppSettings {
   final bool soundEnabled;
   final bool hapticsEnabled;
   final bool notificationsEnabled;
+  final bool strictMode;
   final AppThemeMode themeMode;
 
   static const defaults = AppSettings();
@@ -75,6 +77,7 @@ class AppSettings {
       soundEnabled: json['soundEnabled'] as bool? ?? true,
       hapticsEnabled: json['hapticsEnabled'] as bool? ?? true,
       notificationsEnabled: json['notificationsEnabled'] as bool? ?? true,
+      strictMode: json['strictMode'] as bool? ?? false,
       themeMode: AppThemeMode.values.firstWhere(
         (mode) => mode.name == json['themeMode'],
         orElse: () => AppThemeMode.system,
@@ -108,6 +111,7 @@ class AppSettings {
     'soundEnabled': soundEnabled,
     'hapticsEnabled': hapticsEnabled,
     'notificationsEnabled': notificationsEnabled,
+    'strictMode': strictMode,
     'themeMode': themeMode.name,
   };
 
@@ -122,6 +126,7 @@ class AppSettings {
     bool? soundEnabled,
     bool? hapticsEnabled,
     bool? notificationsEnabled,
+    bool? strictMode,
     AppThemeMode? themeMode,
   }) {
     return AppSettings(
@@ -135,6 +140,7 @@ class AppSettings {
       soundEnabled: soundEnabled ?? this.soundEnabled,
       hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
+      strictMode: strictMode ?? this.strictMode,
       themeMode: themeMode ?? this.themeMode,
     );
   }

@@ -16,7 +16,7 @@ enum _TaskFilter { all, pending, completed }
 class TasksPage extends StatefulWidget {
   const TasksPage({super.key, this.onStartFocus});
 
-  final ValueChanged<String>? onStartFocus;
+  final ValueChanged<Task>? onStartFocus;
 
   @override
   State<TasksPage> createState() => _TasksPageState();
@@ -120,7 +120,7 @@ class _TasksPageState extends State<TasksPage> {
                                     showTaskEditor(context, task: task),
                                 onStart: widget.onStartFocus == null
                                     ? null
-                                    : () => widget.onStartFocus!(task.id),
+                                    : () => widget.onStartFocus!(task),
                               ),
                             ),
                         ],
@@ -136,7 +136,7 @@ class _TasksPageState extends State<TasksPage> {
                                 showTaskEditor(context, task: visible[i]),
                             onStart: widget.onStartFocus == null
                                 ? null
-                                : () => widget.onStartFocus!(visible[i].id),
+                                : () => widget.onStartFocus!(visible[i]),
                           ),
                           if (i != visible.length - 1)
                             const SizedBox(height: 10),
@@ -386,11 +386,13 @@ class _TaskTile extends StatelessWidget {
             children: [
               Padding(
                 padding: const EdgeInsets.only(top: 1),
-                child: _TaskCheckbox(
-                  done: task.done,
-                  priorityColor: _priorityColor(context),
-                  onTap: () => _toggleDone(context),
-                ),
+                child: task.isHabit
+                    ? _HabitMark(done: task.progressRatio(DateTime.now()) >= 1)
+                    : _TaskCheckbox(
+                        done: task.done,
+                        priorityColor: _priorityColor(context),
+                        onTap: () => _toggleDone(context),
+                      ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -463,7 +465,9 @@ class _TaskTile extends StatelessWidget {
                       runSpacing: 6,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        TagChip(label: task.tag, small: true),
+                        _TypeBadge(kind: task.kind),
+                        if (task.tag.trim().isNotEmpty)
+                          TagChip(label: task.tag, small: true),
                         if (overdue)
                           _MetaBadge(
                             label: '逾期',
@@ -479,16 +483,55 @@ class _TaskTile extends StatelessWidget {
                                 : surfaces.muted,
                           ),
                         _MetaBadge(
-                          label:
-                              '${task.completedPomodoros}/${task.estimatedPomodoros}',
-                          icon: Icons.local_florist_rounded,
-                          color:
-                              task.completedPomodoros >= task.estimatedPomodoros
-                              ? AppPalette.sage
-                              : surfaces.muted,
+                          label: '${task.focusMinutes} 分钟/次',
+                          icon: Icons.timer_outlined,
+                          color: surfaces.muted,
                         ),
                       ],
                     ),
+                    if (task.hasTarget) ...[
+                      const SizedBox(height: 9),
+                      Row(
+                        children: [
+                          Text(
+                            task.isHabit
+                                ? '${task.scheduleLabel()} · ${task.periodLabel(DateTime.now())}'
+                                : '目标进度',
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              color: surfaces.faint,
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            task.progressLabel(DateTime.now()),
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w600,
+                              color: task.progressRatio(DateTime.now()) >= 1
+                                  ? AppPalette.sage
+                                  : surfaces.muted,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 5),
+                      SoftProgressBar(
+                        value: task.progressRatio(DateTime.now()),
+                        height: 5,
+                        color: task.progressRatio(DateTime.now()) >= 1
+                            ? AppPalette.sage
+                            : null,
+                      ),
+                    ] else ...[
+                      const SizedBox(height: 7),
+                      Text(
+                        task.completedPomodoros == 0
+                            ? '还没有开始'
+                            : '已收获 ${task.completedPomodoros} 颗番茄',
+                        style: TextStyle(fontSize: 10.5, color: surfaces.faint),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -539,6 +582,65 @@ class _StartFocusButton extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HabitMark extends StatelessWidget {
+  const _HabitMark({required this.done});
+
+  final bool done;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 25,
+      height: 25,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppPalette.sage.withValues(alpha: done ? 0.9 : 0.1),
+        border: Border.all(
+          color: AppPalette.sage.withValues(alpha: 0.65),
+          width: 1.4,
+        ),
+      ),
+      alignment: Alignment.center,
+      child: Icon(
+        Icons.eco_rounded,
+        size: 14,
+        color: done ? Colors.white : AppPalette.sage,
+      ),
+    );
+  }
+}
+
+class _TypeBadge extends StatelessWidget {
+  const _TypeBadge({required this.kind});
+
+  final TaskKind kind;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (kind) {
+      TaskKind.pomodoro => AppPalette.tomato,
+      TaskKind.goal => AppPalette.apricot,
+      TaskKind.habit => AppPalette.sage,
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: context.isDark ? 0.2 : 0.1),
+        borderRadius: BorderRadius.circular(7),
+      ),
+      child: Text(
+        kind.shortLabel,
+        style: TextStyle(
+          fontSize: 9.5,
+          height: 1.2,
+          fontWeight: FontWeight.w600,
+          color: color,
         ),
       ),
     );

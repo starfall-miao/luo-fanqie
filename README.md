@@ -1,132 +1,125 @@
 # 落·番茄
 
-> 把时间种成番茄，也把注意力还给自己。
+> 先定待办，再定时间。把注意力还给当下。
 
 <p>
   <img alt="status" src="https://img.shields.io/badge/status-beta-orange" />
+  <img alt="version" src="https://img.shields.io/badge/version-1.3.0--beta-f15b3d" />
   <img alt="flutter" src="https://img.shields.io/badge/Flutter-3.47.9-027DFD?logo=flutter" />
   <a href="https://github.com/starfall-miao/luo-fanqie/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/starfall-miao/luo-fanqie/actions/workflows/ci.yml/badge.svg" /></a>
   <a href="https://github.com/starfall-miao/luo-fanqie/releases"><img alt="beta release" src="https://img.shields.io/badge/release-beta-orange?logo=github" /></a>
 </p>
 
-落·番茄是一款用 Flutter 编写的专注、任务与自律应用。它把「番茄钟、待办任务、专注统计、跨设备同步」放在同一条时间线上：选一颗任务，专注一颗番茄，让每一段被认真对待的时间都有迹可循。
+落·番茄是一个**任务驱动**的专注与自律 App：先写下想做的事，再决定以什么方式专注。
 
-界面以黄昏海面为底，用落日、暖雾与毛玻璃卡片营造沉浸感；功能上坚持**本地优先**，同步是可选的，不登录也能完整使用。
+- **普通番茄**：一颗番茄一个任务，简单直接。
+- **定目标**：在目标日期前累计完成指定量，支持分钟 / 小时 / 次数 / 自定义单位。
+- **养习惯**：每天、每周选几天、每月选几天，或设置每周 / 每月完成量。
+- 每种待办都可以单独设定单次专注时长，支持自定义标签和一键开始。
+- 横屏 / 平板 / 电脑端取消标签栏，一页卡片仪表盘展示全部核心内容。
+- 开始专注后进入沉浸式会话页：柔和背景、激励文案、最小化、工具与学霸模式。
+- 可选 GitHub Gist 跨设备同步；Android 原生通知；六端 Beta 自动构建。
 
-> 这是一个独立的个人项目。设计灵感来自番茄工作法与番茄 ToDo 类工具，但界面、图标与代码均为本项目原创，不包含其素材。
-
-<p align="center">
-  <img src="docs/screenshots/01-focus-light.png" width="240" alt="专注页" />
-  <img src="docs/screenshots/02-tasks.png" width="240" alt="任务页" />
-  <img src="docs/screenshots/03-stats.png" width="240" alt="统计页" />
-</p>
-
-<p align="center">
-  <img src="docs/screenshots/05-focus-dark.png" width="240" alt="深色专注页" />
-  <img src="docs/screenshots/06-stats-full.png" width="240" alt="完整统计页" />
-  <img src="docs/screenshots/07-task-editor.png" width="240" alt="新建任务" />
-</p>
+> 这是一个独立的个人项目，设计灵感来自番茄工作法与番茄 ToDo 类工具，但界面、代码与图标归属本项目；不包含其素材。
 
 <p align="center">
-  <img src="docs/screenshots/08-wide-focus.png" width="300" alt="宽屏专注页" />
-  <img src="docs/screenshots/09-wide-tasks.png" width="300" alt="宽屏任务页" />
-  <img src="docs/screenshots/10-wide-stats.png" width="300" alt="宽屏统计页" />
+  <img src="docs/screenshots/08-wide-dashboard.png" width="760" alt="横屏卡片仪表盘" />
   <br />
-  <sub>1280 × 800 宽屏布局：专注页左右分栏、任务双列、统计分栏</sub>
+  <sub>1280 × 800 横屏：取消标签栏，一页展示专注、待办、目标习惯和快捷设置</sub>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/01-focus-light.png" width="230" alt="专注页" />
+  <img src="docs/screenshots/02-tasks.png" width="230" alt="任务页" />
+  <img src="docs/screenshots/11-session.png" width="230" alt="沉浸专注页" />
+  <br />
+  <sub>竖屏专注 · 等待办列表 · 沉浸式会话页</sub>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/09-wide-settings.png" width="360" alt="宽屏设置" />
+  <img src="docs/screenshots/10-wide-task-editor.png" width="360" alt="新建待办" />
 </p>
 
 ---
 
 ## 下载 Beta
 
-- **GitHub Releases**：<https://github.com/starfall-miao/luo-fanqie/releases>
-- 所有 Release 都标记为 **Pre-release / Beta**，标签统一使用 `v*-beta.*`。
-- 同一份提交会由 GitHub Actions 构建多端产物，每个文件都附带 `.sha256`。
+- **最新 Release**：<https://github.com/starfall-miao/luo-fanqie/releases>
+- 所有 Release 都是 **Pre-release / Beta**，标签为 `v*-beta.*`。
+- 同一条提交由 GitHub Actions 构建 Android / iOS / macOS / Windows / Linux / Web 六端产物，并附带 `.sha256`。
 
 | 平台 | 产物 | 说明 |
 | --- | --- | --- |
-| Android | `*-android-universal.apk` | Android 7.0+（API 24），arm64 / armv7 / x86_64，release keystore 签名 |
+| Android | `*-android-universal.apk` | Android 7.0+，release keystore 签名，arm64 / armv7 / x86_64 |
 | Web | `*-web.zip` | 静态站点，解压后用任意静态服务器托管 |
-| iOS | `*-ios-unsigned.ipa` | 未签名产物，需要用 AltStore / Sideloadly 等自行重签 |
-| macOS | `*-macos.zip` | 未签名的 `.app`；首次打开可能需要右键打开或移除 quarantine |
+| iOS | `*-ios-unsigned.ipa` | 未签名，需要用自己的证书或 AltStore / Sideloadly 重签 |
+| macOS | `*-macos.zip` | 未签名 `.app`，首次打开可能需要在系统设置中允许 |
 | Windows | `*-windows.zip` | 解压后运行 `luo_fanqie_app.exe` |
 | Linux | `*-linux-x64.tar.gz` | 需要 GTK 3 运行环境，解压后运行 `luo_fanqie_app` |
 
-> 目前只有 Android 与 Web 端经过重点测试；iOS / 桌面端是 Beta 构建，尚未做开发者签名或商店分发。因为项目仍处于 Beta，数据格式和交互可能继续调整；Android 升级请使用后续同签名版本覆盖安装，跨签名需要先卸载。
-
-## 现在已经有的
-
-### 沉浸式专注
-
-- 25 / 5 / 15 分钟经典节奏，所有时长、长休息间隔与每日目标可调。
-- 基于结束时间计时，切后台、锁屏或设备休眠后回到前台会自动校准。
-- 计时快照保存在本地，冷启动可以恢复正在进行的番茄；如果已经超时，会自动补记。
-- 完成专注后写入会话记录，可以选择关联任务并自动累计该任务的番茄数。
-- Android 端通过原生 `AlarmManager` 发送系统通知：锁屏、切后台或进程被回收后也能收到提醒。
-- 支持自动开始休息 / 自动开始下一颗、系统通知、声音与震动开关。
-
-### 任务与专注闭环
-
-- 标题、备注、预计番茄数、优先级、分类标签、截止日期。
-- 未完成优先 → 高优先级优先 → 截止日期近优先的智能排序。
-- 全部 / 待办 / 完成三种视图，左滑删除可撤销。
-- 任务卡片支持**一键开始专注**：自动切换回专注页并启动番茄。
-- 逾期、番茄进度、当前专注任务都有明确的视觉反馈。
-
-### 专注统计
-
-- 今日专注分钟、完成番茄、连续天数与每日目标进度。
-- 近 7 天柱状图、近 12 周热力图。
-- 最近的专注记录与本周、累计数据。
-
-### 跨设备同步（GitHub Gist）
-
-落·番茄不依赖自建服务器，使用 GitHub Gist 作为可选的同步中转：
-
-1. 在 GitHub 创建一个只勾选 **Gists** 读写权限的 fine-grained token。
-2. 打开 设置 → 跨设备同步，填入 Token，打开「自动同步」。
-3. 首次同步会自动创建一个**私密 Gist**；另一台设备登录同一 GitHub 账号并填入 Token 即可自动找到它。
-4. 同步地址、Token 与 Gist ID 只保存在本机，不会提交到仓库。
-
-合并策略：
-
-- 任务：按任务最后修改时间取较新版本；删除使用 90 天删除墓碑，避免删除被旧设备复活。
-- 专注记录：按会话 id 求并集，不覆盖历史。
-- 设置、主题、计时器状态不参与同步，保持每台设备独立。
-- 这是「最后写入优先」的轻量同步，不是实时协作；同一秒内的并发修改以较新时间戳为准。
-
-### 外观与交互
-
-- 黄昏海面背景 + 毛玻璃卡片 + 暮色番茄配色。
-- 跟随系统 / 浅色 / 深色。
-- 手机底部胶囊导航，宽屏（≥ 980dp）自动切换为侧边导航。
-- 平板 / 桌面横屏使用双栏或双列布局：专注页左右分栏、任务卡片双列、统计图表分栏，不再把内容挤在屏幕中央。
-- 应用图标已替换为用户提供的原创插画。
-- 无账号、无广告、无第三方统计 SDK；不联网也能完整使用。
+> 目前重点验证 Android 与 Web；iOS / 桌面为 Beta 构建，尚未做商店级签名。Android 升级请使用后续同签名版本覆盖安装，跨签名需要先卸载。
 
 ---
 
-## 快速开始
+## 三种待办
+
+| 类型 | 你设定什么 | 卡片展示 |
+| --- | --- | --- |
+| 普通番茄 | 单次专注时长、标签、优先级 | 已完成番茄数、单次时长 |
+| 定目标 | 目标日期、目标总量、单位、单次时长 | 进度条 + 已完成 / 目标 |
+| 养习惯 | 每天 / 每周选天 / 每月选天 / 每周或每月完成量、单次时长 | 今日或本周进度 + 习惯节奏 |
+
+**自定义标签**：标签输入框直接写，例如「备考」「论文」「晨间」，不需要从预设选项里挑；颜色由标签文本稳定生成。
+
+**快速开始**：横屏仪表盘、待办列表和空状态都提供快速开始入口。普通番茄可以脱离具体任务直接开始；任务卡片的开始按钮会使用该任务自己的专注时长。
+
+**进度计算**：一次完成的专注按单位累计——分钟 / 小时累加专注分钟，次数与自定义单位每次 +1；习惯在每日 / 每周 / 每月周期切换时重置周期进度（保留历史专注记录）。
+
+## 横屏：一页卡片，没有标签栏
+
+- 窗口宽度 ≥ 900 且横屏时自动进入 **Dashboard**，不再显示底部 Tab 或侧边栏。
+- 左栏：番茄计时、阶段切换、当前待办、快速开始。
+- 中栏：可滚动的待办列表，按类型显示进度与一键开始。
+- 右栏：今日专注、在途目标与习惯、同步状态、主题快捷切换。
+- 设置通过右上角齿轮进入；任务编辑使用底部面板，不打断当前专注状态。
+- 竖屏手机仍保留底部导航，专注页保持大表盘。
+
+## 沉浸专注与学霸模式
+
+- 点击开始后进入独立的**沉浸式会话页**：柔和渐变背景、随机激励文案、圆形倒计时。
+- 顶部可最小化回仪表盘，计时继续；底部有小工具（今日数据、白噪音预告、学霸状态）。
+- **学霸模式**（设置中开启）：
+  - Android 上尝试进入系统屏幕固定（screen pinning），并保持屏幕常亮；
+  - 会话页隐藏暂停与最小化，返回键被拦截；
+  - 只保留“结束锁机”的显式退出，系统手势仍可解除固定；
+  - 不使用设备管理员、不隐藏桌面图标、不阻止卸载，避免恶意软件式行为。
+
+## 计时、统计与同步
+
+- 25 / 5 / 15 分钟默认节奏，时长、长休息间隔、每日目标可调。
+- 基于结束时间计时，切后台或设备休眠后自动校准；冷启动可恢复。
+- Android 原生系统通知，锁屏或进程被回收后仍可收到提醒。
+- 今日目标、近 7 天柱状图、12 周热力图、最近记录。
+- 可选 **GitHub Gist 同步**：设置 → 跨设备同步，填入一个只有 Gists 权限的 fine-grained token；首次自动创建私密 Gist，同账号其他设备可自动发现。
+- 合并规则：任务按更新时间取较新版本，删除使用 90 天墓碑，专注记录求并集；设置与计时状态不参与同步。
+
+---
+
+## 构建与开发
 
 要求：Flutter **3.47.9+**、Dart 3.13+。
 
 ```bash
 flutter pub get
-flutter run -d chrome    # Web
-flutter run              # Android / iOS 设备
-flutter run -d macos     # macOS
-flutter run -d windows   # Windows
-flutter run -d linux     # Linux
+flutter run -d chrome
+flutter run              # Android / iOS
+flutter run -d macos
+flutter run -d windows
+flutter run -d linux
 ```
 
-### Android 构建（国内镜像）
-
-本工程已配置国内镜像：
-
-- Gradle distribution：腾讯云镜像
-- Maven：阿里云 google / gradle-plugin / public 优先，官方仓库兜底
-- Flutter 构建产物：`storage.flutter-io.cn`
-- Pub：`pub.flutter-io.cn`
+### Android（国内镜像）
 
 ```bash
 export LANG=C.UTF-8 LC_ALL=C.UTF-8       # 中文工程路径 + Java 必需
@@ -139,38 +132,37 @@ export PUB_HOSTED_URL=https://pub.flutter-io.cn
 flutter build apk --release
 ```
 
-本机已验证的 SDK 组合：OpenJDK 17、Android SDK Platform 36 / 35、Build-Tools 36.0.0、NDK 28.2.13676358（r28c）、CMake 3.22.1。
+工程内已配置：Gradle 腾讯云镜像、阿里云 Maven 镜像、Flutter 中国存储与 Pub 镜像。已验证 SDK 组合：OpenJDK 17、Android Platform 36 / 35、Build-Tools 36.0.0、NDK 28.2.13676358、CMake 3.22.1。
 
 ### 发布签名
 
-- 本地开发：`android/key.properties` + `android/app/luo-fanqie-release.jks`
-- GitHub Actions：keystore、密码和 alias 存储为仓库 Secrets
-- 两者已加入 `.gitignore`，请不要提交签名文件
-- **请单独备份 keystore**；丢失后将无法覆盖升级已安装的正式包
+- 本机：`android/key.properties` + `android/app/luo-fanqie-release.jks`（已加入 `.gitignore`）
+- CI：keystore、密码与 alias 存放在仓库 Actions Secrets
+- **请单独备份 keystore**，丢失后无法覆盖升级已安装的应用
 
----
-
-## 测试与 CI
+### 测试
 
 ```bash
-flutter test          # 40 项单元 / 组件测试（截图测试默认跳过）
+flutter test          # 44 项单元 / 组件测试（截图测试默认跳过）
 dart analyze
 ```
 
-- `CI` workflow 在 push / PR 时自动执行 analyze 与 test。
-- `Beta Release` workflow 支持手动触发或推送 `v*-beta.*` 标签，会并行构建：
-  - Android 签名 APK + Web 静态包
-  - iOS 未签名 IPA + macOS 未签名 `.app`
-  - Windows ZIP + Linux x64 tar.gz
-  - 汇总 SHA-256，创建 **Pre-release** GitHub Release（带 Beta 标识）
-- 截图生成：
+截图使用 `test/fonts/ScreenshotCJK.otf`（Noto Sans CJK SC 的 GB2312 子集，SIL OFL 授权）渲染，避免中文在文档图片里出现方框：
 
 ```bash
 flutter test test/screenshots_test.dart \
   --update-goldens --dart-define=RUN_GOLDENS=true
 ```
 
-当前覆盖：任务 CRUD / 排序 / 墓碑、设置持久化、统计聚合、番茄钟状态机、通知编排、深度合并、Gist 客户端、同步控制器、页面导航、小屏 / 宽屏布局与一键专注。
+---
+
+## CI / 发布
+
+- **CI**：push / PR 自动执行 analyze 与测试。
+- **Beta Release**：手动触发或推送 `v*-beta.*` 标签，并行构建六端、生成校验文件、创建 Pre-release。
+- 所有 GitHub Release 均为 Beta，不会自动成为 Latest。
+
+Actions 工作流：`.github/workflows/ci.yml`、`.github/workflows/beta-release.yml`
 
 ---
 
@@ -178,62 +170,53 @@ flutter test test/screenshots_test.dart \
 
 ```
 lib/
-├── main.dart                     # 控制器组装、Provider、生命周期
-├── app.dart                      # MaterialApp、主题、中文本地化
+├── main.dart / app.dart
 ├── core/
-│   ├── notifications/            # Android 原生通知桥接
-│   ├── storage/                  # KeyValueStorage / SharedPreferences
-│   ├── theme/                    # 配色、毛玻璃表面、字体
-│   └── utils/                    # 日期与 ID
+│   ├── notifications/        # Android AlarmManager 通知
+│   ├── immersive/            # 屏幕固定 / 常亮桥接
+│   ├── storage/
+│   ├── theme/
+│   └── utils/
 ├── features/
-│   ├── home/                     # 导航壳、任务一键专注、生命周期
-│   ├── focus/                    # 专注页、番茄表盘、任务选择器
-│   ├── tasks/                    # 任务、删除墓碑、编辑面板
-│   ├── stats/                    # 会话、周图表、热力图
-│   ├── sync/                     # Gist 客户端、同步控制器、配置面板
-│   ├── settings/                 # 设置与同步入口
-│   └── timer/                    # 番茄钟状态机、阶段视觉、通知调度
-└── shared/widgets/               # 背景、玻璃卡片、品牌番茄
-
-android/ · ios/ · macos/ · windows/ · linux/ · web/   # 平台工程
+│   ├── home/                 # 导航壳 + 横屏卡片 Dashboard
+│   ├── focus/                # 专注页、沉浸会话页、任务选择
+│   ├── tasks/                # 三种待办、进度、编辑面板
+│   ├── stats/                # 图表、热力图
+│   ├── sync/                 # GitHub Gist 同步
+│   ├── settings/
+│   └── timer/                # 番茄钟状态机与通知调度
+└── shared/widgets/
+android/ · ios/ · macos/ · windows/ · linux/ · web/
 ```
 
-技术栈：Flutter / Material 3、ChangeNotifier + provider、shared_preferences、fl_chart、http、CustomPainter、Android AlarmManager（Kotlin）。
+技术栈：Flutter / Material 3、provider、shared_preferences、fl_chart、http、CustomPainter、Android AlarmManager + Screen Pinning。
 
 ---
 
-## 数据与隐私
+## 数据、安全与边界
 
-- 默认全部数据保存在本机；同步关闭时没有任何网络请求。
-- 开启同步后只与 GitHub API 通信，数据写入你自己的私密 Gist。
-- GitHub Token 与同步配置以应用偏好设置形式保存在本机（依赖系统应用沙盒，不是独立加密保险箱）；请不要在共享设备上长期保留 Token。
-- 私密 Gist 不等于端到端加密：GitHub 服务端可以读取其中的数据。请勿把不愿意交给第三方的敏感内容放进任务或备注。
-- 设置页提供清除已完成任务、清空专注记录与断开同步入口。
-- 卸载应用会删除本地数据；云端 Gist 需要到 GitHub 手动删除。
+- 默认全部数据留在本机；同步关闭时没有网络请求。
+- 开启同步只与 GitHub API 通信，写入你的私密 Gist；Gist 不是端到端加密，请不要同步敏感内容。
+- GitHub Token 与同步配置保存在应用沙盒偏好设置中，不是独立加密保险箱；共享设备上请及时断开。
+- 学霸模式的系统屏幕固定只在 Android 生效；iOS / 桌面只有应用内限制。
+- **不会实现**：阻止其他 App 启动、拦截所有系统通知、隐藏桌面图标、防卸载等依赖辅助功能 / 设备管理员 / 定制 ROM 的强制性能力。这与平台政策、用户安全与“可退出”原则冲突。
+- 当前未完成：白噪音、iOS 本地通知、更多主题、桌面小组件。
 
-## 已知边界与 Roadmap
+## Roadmap
 
-当前版本是 Beta，以下能力仍在计划中：
-
-- [x] 番茄钟、任务、统计、Android 系统通知
-- [x] GitHub Gist 跨设备同步
-- [x] 黄昏海面 + 毛玻璃视觉、任务一键开始
-- [ ] 应用内「锁机 / 学霸模式」：严格计时、离开页面提醒、免打扰引导
-- [ ] 白噪音与背景音（雨声、海浪、咖啡馆等）
-- [ ] 任务目标时长 / 今日进度百分比
-- [ ] iOS / 桌面端本地通知
+- [x] 任务驱动：普通番茄 / 定目标 / 养习惯、自定义标签、单次时长
+- [x] 横屏单页卡片仪表盘，无标签栏
+- [x] 沉浸式会话页、Android 屏幕固定的学霸模式
+- [x] GitHub Gist 同步、Android 通知、六端 Actions Beta
+- [ ] 白噪音与背景音
+- [ ] 更完整的习惯打卡日历与目标复盘
+- [ ] iOS 本地通知、桌面通知
 - [ ] 更多主题与小组件
-
-关于「强制防打扰」：阻止其他 App、拦截全部通知、隐藏桌面图标、防卸载这类能力依赖 Android 辅助功能、设备管理员或定制 ROM，且与 Google Play 政策、用户安全和隐私存在冲突，本项目不会以「恶意防关闭」的方式实现。后续会优先做**应用内严格模式 + 免打扰引导**这种透明、可退出的方案。
-
----
 
 ## 致谢
 
-- [fl_chart](https://github.com/imaNNeo/fl_chart) 提供图表
-- [provider](https://pub.dev/packages/provider)、[shared_preferences](https://pub.dev/packages/shared_preferences)、[http](https://pub.dev/packages/http)
-- 所有界面插画、图标与番茄 Logo 由本项目自行绘制
+- 应用图标由项目作者提供
+- 截图字体：[Noto Sans CJK SC](https://github.com/notofonts/noto-cjk)（SIL Open Font License，已附带许可证）
+- [fl_chart](https://github.com/imaNNeo/fl_chart)、[provider](https://pub.dev/packages/provider)、[shared_preferences](https://pub.dev/packages/shared_preferences)、[http](https://pub.dev/packages/http)
 
-如果这颗番茄对你有一点用，欢迎点一个 Star，或者去种下今天的第一个 25 分钟。
-
-<sub>当前版本：1.2.1 · Beta</sub>
+<sub>当前版本：1.3.0 · Beta · 先定待办，再定时间。</sub>
