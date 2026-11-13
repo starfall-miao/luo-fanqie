@@ -12,6 +12,7 @@ import '../../settings/providers/settings_controller.dart';
 import '../../stats/providers/stats_controller.dart';
 import '../../sync/providers/sync_controller.dart';
 import '../../sync/views/sync_settings_sheet.dart';
+import 'security_page.dart';
 import '../../tasks/providers/task_controller.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -328,11 +329,11 @@ class SettingsPage extends StatelessWidget {
                         children: [
                           _SettingRow(
                             icon: Icons.cloud_sync_rounded,
-                            title: 'GitHub Gist 同步',
+                            title: '文件服务器同步',
                             subtitle: sync.isConfigured
                                 ? (sync.lastError ??
                                       (sync.autoSync ? '自动同步已开启' : '手动同步'))
-                                : '换设备也不用重来',
+                                : 'WebDAV / Alist / FTP，自建才安全',
                             value: sync.statusLabel,
                             onTap: () => showSyncSettings(context),
                           ),
@@ -384,14 +385,26 @@ class SettingsPage extends StatelessWidget {
                           ),
                           _RowDivider(),
                           _SettingRow(
+                            icon: Icons.verified_user_outlined,
+                            title: '安全与权限',
+                            subtitle: '数据去向、按需权限与文件服务器说明',
+                            value: '',
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const SecurityPage(),
+                              ),
+                            ),
+                          ),
+                          _RowDivider(),
+                          _SettingRow(
                             icon: Icons.info_outline_rounded,
                             title: '版本',
                             subtitle: '落·番茄',
-                            value: '1.3.0',
+                            value: '1.4.0',
                             onTap: () => showLicensePage(
                               context: context,
                               applicationName: '落·番茄',
-                              applicationVersion: '1.3.0',
+                              applicationVersion: '1.4.0',
                               applicationLegalese: '把时间种成番茄。',
                             ),
                           ),
@@ -553,7 +566,7 @@ class _SettingsSidebar extends StatelessWidget {
               Text(
                 sync.lastError ??
                     (sync.lastSyncAt == null
-                        ? '使用 GitHub Gist 在设备之间合并任务和记录。'
+                        ? '只连接你自己填写的文件服务器。'
                         : '上次同步 ${relativeDayLabel(sync.lastSyncAt!)} ${clockLabel(sync.lastSyncAt!)}'),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,

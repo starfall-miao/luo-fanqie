@@ -1,33 +1,29 @@
-// 构造函数参数是对外 API，字段保持私有。
+// 同步配置与凭据保存在应用私有存储；不同步时不会发出网络请求。
 // ignore_for_file: prefer_initializing_formals
 
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../core/storage/key_value_storage.dart';
-import '../../../core/utils/id_utils.dart';
 import '../../stats/providers/stats_controller.dart';
 import '../../tasks/providers/task_controller.dart';
+import '../models/sync_config.dart';
 import '../models/sync_snapshot.dart';
-import '../services/gist_sync_client.dart';
+import '../services/remote_sync_store.dart';
+import '../services/sync_store_factory.dart';
 
 enum SyncStatus { idle, syncing, success, error }
 
-/// 跨设备同步控制器。
-///
-/// 目前使用 GitHub Gist 作为远端，配置与凭据仅保存在本机。
-/// 合并策略见 [SyncSnapshot.merge]：任务按最后修改时间、删除按墓碑、
-/// 专注记录按 id 求并集。
+/// 只同步到用户自行填写的 WebDAV / Alist / FTP 文件服务器。
 class SyncController extends ChangeNotifier {
   SyncController({
     required TaskController tasks,
     required StatsController stats,
     required KeyValueStorage storage,
     http.Client? httpClient,
-    RemoteSyncStore Function(String token, String? gistId)? storeFactory,
+    RemoteSyncStore Function(SyncConfig config)? storeFactory,
     DateTime Function()? clock,
     bool scheduleAutoSyncOnStart = true,
   }) : _tasks = tasks,
@@ -37,17 +33,17 @@ class SyncController extends ChangeNotifier {
        _http = httpClient ?? http.Client(),
        _ownsHttpClient = httpClient == null,
        _now = clock ?? DateTime.now {
-    _deviceId = _loadDeviceId();
-    _loadConfig();
+    _config = SyncConfig.decode(_storage.read(_configKey));
+    _lastSyncAt = DateTime.tryParse(_storage.read(_lastSyncKey) ?? '');
     _tasks.addListener(_onDataChanged);
     _stats.addListener(_onDataChanged);
-    if (scheduleAutoSyncOnStart && _autoSync && isConfigured) {
+    if (scheduleAutoSyncOnStart && isConfigured && _config!.autoSync) {
       _scheduleAutoSync(const Duration(seconds: 3));
     }
   }
 
-  static const _configKey = 'luo_fanqie.sync.config.v1';
-  static const _deviceKey = 'luo_fanqie.sync.device.v1';
+  static const _configKey = 'luo_fanqie.sync.file.v1';
+  static const _lastSyncKey = 'luo_fanqie.sync.last.v1';
   static const _autoSyncDebounce = Duration(seconds: 4);
 
   final TaskController _tasks;
@@ -56,12 +52,9 @@ class SyncController extends ChangeNotifier {
   final http.Client _http;
   final bool _ownsHttpClient;
   final DateTime Function() _now;
-  final RemoteSyncStore Function(String token, String? gistId)? _storeFactory;
+  final RemoteSyncStore Function(SyncConfig config)? _storeFactory;
 
-  late String _deviceId;
-  String _token = '';
-  String? _gistId;
-  bool _autoSync = false;
+  SyncConfig? _config;
   DateTime? _lastSyncAt;
   SyncStatus _status = SyncStatus.idle;
   String? _lastError;
@@ -69,13 +62,11 @@ class SyncController extends ChangeNotifier {
   bool _applying = false;
   Timer? _autoSyncTimer;
 
-  bool get isConfigured => _token.isNotEmpty;
+  SyncConfig? get config => _config;
 
-  bool get autoSync => _autoSync;
+  bool get isConfigured => _config?.isConfigured == true;
 
-  String get token => _token;
-
-  String? get gistId => _gistId;
+  bool get autoSync => _config?.autoSync ?? false;
 
   DateTime? get lastSyncAt => _lastSyncAt;
 
@@ -85,41 +76,33 @@ class SyncController extends ChangeNotifier {
 
   bool get isSyncing => _syncing;
 
-  String get deviceId => _deviceId;
-
   String get statusLabel => switch (_status) {
     SyncStatus.syncing => '同步中…',
     SyncStatus.success => '已同步',
     SyncStatus.error => '同步失败',
-    SyncStatus.idle => isConfigured ? '已开启' : '未开启',
+    SyncStatus.idle => isConfigured ? '已配置' : '未配置',
   };
 
-  void configure({
-    required String token,
-    String? gistId,
-    required bool autoSync,
-  }) {
-    _token = token.trim();
-    final normalizedGistId = gistId?.trim();
-    _gistId = normalizedGistId == null || normalizedGistId.isEmpty
-        ? null
-        : normalizedGistId;
-    _autoSync = autoSync;
+  void configure(SyncConfig config) {
+    _config = config;
     _lastError = null;
     _status = SyncStatus.idle;
     _saveConfig();
     notifyListeners();
-    if (isConfigured && autoSync) {
+    if (config.autoSync && config.isConfigured) {
       _scheduleAutoSync(const Duration(seconds: 1));
+    } else {
+      _autoSyncTimer?.cancel();
     }
   }
 
   void setAutoSync(bool value) {
-    if (_autoSync == value) return;
-    _autoSync = value;
+    final current = _config;
+    if (current == null || current.autoSync == value) return;
+    _config = current.copyWith(autoSync: value);
     _saveConfig();
     notifyListeners();
-    if (value && isConfigured) {
+    if (value) {
       _scheduleAutoSync(const Duration(seconds: 1));
     } else {
       _autoSyncTimer?.cancel();
@@ -128,19 +111,48 @@ class SyncController extends ChangeNotifier {
 
   void disconnect() {
     _autoSyncTimer?.cancel();
-    _token = '';
-    _gistId = null;
-    _autoSync = false;
+    _config = null;
     _lastSyncAt = null;
     _status = SyncStatus.idle;
     _lastError = null;
-    _saveConfig();
+    _storage.delete(_configKey);
+    _storage.delete(_lastSyncKey);
     notifyListeners();
   }
 
+  Future<bool> testConnection(SyncConfig config) async {
+    if (!config.isConfigured) {
+      _lastError = '请先填写服务器地址';
+      _status = SyncStatus.error;
+      notifyListeners();
+      return false;
+    }
+    RemoteSyncStore? store;
+    try {
+      _lastError = null;
+      notifyListeners();
+      store =
+          _storeFactory?.call(config) ??
+          createSyncStore(config, httpClient: _http);
+      await store.test();
+      _lastError = null;
+      _status = SyncStatus.idle;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      _lastError = _friendlyError(error);
+      _status = SyncStatus.error;
+      notifyListeners();
+      return false;
+    } finally {
+      store?.close();
+    }
+  }
+
   Future<bool> syncNow() async {
-    if (!isConfigured) {
-      _lastError = '请先填写 GitHub Token';
+    final config = _config;
+    if (config == null || !config.isConfigured) {
+      _lastError = '请先在设置中接入 WebDAV、OpenAlist 或 FTP 服务器';
       _status = SyncStatus.error;
       notifyListeners();
       return false;
@@ -153,17 +165,22 @@ class SyncController extends ChangeNotifier {
 
     RemoteSyncStore? store;
     try {
-      final local = _buildLocalSnapshot();
       store =
-          _storeFactory?.call(_token, _gistId) ??
-          GistSyncClient(token: _token, gistId: _gistId, httpClient: _http);
-      final remote = await store.pull();
-      if (remote.gistId != null) _gistId = remote.gistId;
-      final merged = remote.snapshot == null
-          ? local
-          : SyncSnapshot.merge(local, remote.snapshot!);
+          _storeFactory?.call(config) ??
+          createSyncStore(config, httpClient: _http);
+      final remoteContent = await store.download();
+      final local = _buildLocalSnapshot();
+      SyncSnapshot? remote;
+      if (remoteContent != null && remoteContent.trim().isNotEmpty) {
+        try {
+          remote = SyncSnapshot.decode(remoteContent);
+        } on FormatException {
+          throw const SyncException('远端同步文件格式不正确，请检查是否为落·番茄生成的 JSON');
+        }
+      }
+      final merged = remote == null ? local : SyncSnapshot.merge(local, remote);
       final outgoing = SyncSnapshot(
-        deviceId: _deviceId,
+        deviceId: local.deviceId,
         updatedAt: _now(),
         tasks: merged.tasks,
         sessions: merged.sessions,
@@ -181,15 +198,14 @@ class SyncController extends ChangeNotifier {
         _applying = false;
       }
 
-      final savedGistId = await store.push(outgoing);
-      _gistId = savedGistId;
+      await store.upload(outgoing.encode());
       _lastSyncAt = _now();
       _status = SyncStatus.success;
-      _saveConfig();
+      unawaited(_storage.write(_lastSyncKey, _lastSyncAt!.toIso8601String()));
       notifyListeners();
       return true;
     } catch (error) {
-      _lastError = error is SyncException ? error.message : '同步失败：$error';
+      _lastError = _friendlyError(error);
       _status = SyncStatus.error;
       notifyListeners();
       return false;
@@ -203,23 +219,15 @@ class SyncController extends ChangeNotifier {
     }
   }
 
-  /// 回到前台时调用；只在自动同步开启时工作。
   void syncOnResume() {
-    if (_autoSync && isConfigured) {
-      _scheduleAutoSync(const Duration(milliseconds: 600));
+    if (autoSync && isConfigured) {
+      _scheduleAutoSync(const Duration(milliseconds: 700));
     }
-  }
-
-  void clearError() {
-    if (_lastError == null) return;
-    _lastError = null;
-    if (_status == SyncStatus.error) _status = SyncStatus.idle;
-    notifyListeners();
   }
 
   SyncSnapshot _buildLocalSnapshot() {
     return SyncSnapshot(
-      deviceId: _deviceId,
+      deviceId: _deviceId(),
       updatedAt: _now(),
       tasks: _tasks.tasks.toList(),
       sessions: _stats.sessions.toList(),
@@ -227,56 +235,40 @@ class SyncController extends ChangeNotifier {
     ).pruneTombstones(now: _now());
   }
 
+  String _deviceId() {
+    const key = 'luo_fanqie.sync.device.v1';
+    var id = _storage.read(key);
+    if (id == null || id.isEmpty) {
+      id = 'device-${_now().microsecondsSinceEpoch}';
+      unawaited(_storage.write(key, id));
+    }
+    return id;
+  }
+
+  String _friendlyError(Object error) {
+    if (error is SyncException) return error.message;
+    if (error is FormatException) return '远端数据格式不正确';
+    return '同步失败：$error';
+  }
+
   void _onDataChanged() {
-    if (_applying || _syncing || !_autoSync || !isConfigured) return;
+    if (_applying || _syncing || !autoSync || !isConfigured) return;
     _scheduleAutoSync(_autoSyncDebounce);
   }
 
   void _scheduleAutoSync(Duration delay) {
-    if (!_autoSync || !isConfigured) return;
+    if (!autoSync || !isConfigured) return;
     _autoSyncTimer?.cancel();
     _autoSyncTimer = Timer(delay, () {
-      if (!_autoSync || !isConfigured) return;
+      if (!autoSync || !isConfigured) return;
       unawaited(syncNow());
     });
   }
 
-  String _loadDeviceId() {
-    final stored = _storage.read(_deviceKey);
-    if (stored != null && stored.isNotEmpty) return stored;
-    final created = newId('device');
-    unawaited(_storage.write(_deviceKey, created));
-    return created;
-  }
-
-  void _loadConfig() {
-    final raw = _storage.read(_configKey);
-    if (raw == null) return;
-    try {
-      final decoded = jsonDecode(raw);
-      if (decoded is! Map) return;
-      final config = Map<String, dynamic>.from(decoded);
-      _token = config['token'] as String? ?? '';
-      _gistId = config['gistId'] as String?;
-      _autoSync = config['autoSync'] as bool? ?? false;
-      _lastSyncAt = DateTime.tryParse(config['lastSyncAt'] as String? ?? '');
-    } catch (_) {
-      // 配置损坏时保持未配置状态。
-    }
-  }
-
   void _saveConfig() {
-    unawaited(
-      _storage.write(
-        _configKey,
-        jsonEncode(<String, dynamic>{
-          'token': _token,
-          'gistId': _gistId,
-          'autoSync': _autoSync,
-          'lastSyncAt': _lastSyncAt?.toIso8601String(),
-        }),
-      ),
-    );
+    final config = _config;
+    if (config == null) return;
+    unawaited(_storage.write(_configKey, config.encode()));
   }
 
   @override

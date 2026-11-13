@@ -10,6 +10,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/common.dart';
 import '../../../shared/widgets/tomato_mark.dart';
 import '../../settings/providers/settings_controller.dart';
+import '../../soundscape/soundscape_controller.dart';
 import '../../stats/providers/stats_controller.dart';
 import '../../tasks/models/task.dart';
 import '../../timer/models/pomodoro_phase.dart';
@@ -90,6 +91,7 @@ class _SessionPageState extends State<SessionPage> {
   static const _immersive = ImmersiveModeService();
 
   PomodoroController? _timer;
+  SoundscapeController? _soundscape;
   late final String _quote;
   late int _lastCompletedInCycle;
   bool _completed = false;
@@ -105,6 +107,7 @@ class _SessionPageState extends State<SessionPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _soundscape ??= context.read<SoundscapeController>();
     final timer = context.read<PomodoroController>();
     if (identical(timer, _timer)) return;
     _timer?.removeListener(_handleTimer);
@@ -148,6 +151,16 @@ class _SessionPageState extends State<SessionPage> {
     if (mounted) Navigator.of(context).pop();
   }
 
+  Future<void> _showSounds() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      constraints: const BoxConstraints(maxWidth: 560),
+      builder: (_) => const _SoundscapeSheet(),
+    );
+  }
+
   Future<void> _showTools() async {
     final timer = _timer!;
     final stats = context.read<StatsController>();
@@ -186,9 +199,13 @@ class _SessionPageState extends State<SessionPage> {
               subtitle: '${stats.todaySessions} 颗番茄 · ${stats.todayMinutes} 分钟',
             ),
             _ToolRow(
-              icon: Icons.volume_off_rounded,
-              title: '白噪音',
-              subtitle: '即将上线，先安静地陪自己一会儿',
+              icon: Icons.graphic_eq_rounded,
+              title: '环境音',
+              subtitle: '雨声、海浪与篝火，全部离线',
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                _showSounds();
+              },
             ),
             _ToolRow(
               icon: Icons.shield_outlined,
@@ -231,6 +248,7 @@ class _SessionPageState extends State<SessionPage> {
   @override
   void dispose() {
     _timer?.removeListener(_handleTimer);
+    unawaited(_soundscape?.stop() ?? Future<void>.value());
     unawaited(_immersive.leave());
     super.dispose();
   }
@@ -276,6 +294,7 @@ class _SessionPageState extends State<SessionPage> {
                             completed: _completed,
                             onMinimize: _minimize,
                             onTools: _showTools,
+                            onSounds: _showSounds,
                           ),
                           const SizedBox(height: 20),
                           if (wide)
@@ -398,12 +417,14 @@ class _SessionTopBar extends StatelessWidget {
     required this.completed,
     required this.onMinimize,
     required this.onTools,
+    required this.onSounds,
   });
 
   final bool strict;
   final bool completed;
   final VoidCallback onMinimize;
   final VoidCallback onTools;
+  final VoidCallback onSounds;
 
   @override
   Widget build(BuildContext context) {
@@ -452,6 +473,12 @@ class _SessionTopBar extends StatelessWidget {
           ),
         ),
         const Spacer(),
+        CircleIconButton(
+          icon: Icons.graphic_eq_rounded,
+          tooltip: '环境音',
+          onPressed: onSounds,
+        ),
+        const SizedBox(width: 8),
         CircleIconButton(
           icon: Icons.grid_view_rounded,
           tooltip: '专注小工具',
@@ -696,17 +723,23 @@ class _ToolRow extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
+    this.onTap,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
     return ListTile(
       contentPadding: EdgeInsets.zero,
+      onTap: onTap,
+      trailing: onTap == null
+          ? null
+          : Icon(Icons.chevron_right_rounded, size: 17, color: surfaces.faint),
       leading: Container(
         width: 38,
         height: 38,
@@ -721,6 +754,129 @@ class _ToolRow extends StatelessWidget {
       subtitle: Text(
         subtitle,
         style: TextStyle(fontSize: 11, color: surfaces.faint),
+      ),
+    );
+  }
+}
+
+class _SoundscapeSheet extends StatelessWidget {
+  const _SoundscapeSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final sound = context.watch<SoundscapeController>();
+    final surfaces = context.surfaces;
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(22, 12, 22, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 38,
+              height: 4,
+              decoration: BoxDecoration(
+                color: surfaces.border,
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text('环境音', style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 5),
+          Text(
+            '全部音频随应用打包，不依赖网络，也不会上传任何信息。',
+            style: TextStyle(fontSize: 11, color: surfaces.faint),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              for (final scene in Soundscape.values)
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      right: scene == Soundscape.fire ? 0 : 8,
+                    ),
+                    child: GestureDetector(
+                      onTap: () => sound.toggle(scene),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: sound.active == scene
+                              ? scheme.primary.withValues(alpha: 0.12)
+                              : surfaces.cardMuted.withValues(alpha: 0.55),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: sound.active == scene
+                                ? scheme.primary.withValues(alpha: 0.45)
+                                : Colors.transparent,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              switch (scene) {
+                                Soundscape.rain => Icons.water_drop_outlined,
+                                Soundscape.waves => Icons.waves_rounded,
+                                Soundscape.fire =>
+                                  Icons.local_fire_department_outlined,
+                              },
+                              size: 22,
+                              color: sound.active == scene
+                                  ? scheme.primary
+                                  : surfaces.muted,
+                            ),
+                            const SizedBox(height: 7),
+                            Text(
+                              scene.label,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: sound.active == scene
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                                color: sound.active == scene
+                                    ? scheme.primary
+                                    : surfaces.muted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Icon(Icons.volume_down_rounded, size: 17, color: surfaces.faint),
+              Expanded(
+                child: Slider(value: sound.volume, onChanged: sound.setVolume),
+              ),
+              Icon(Icons.volume_up_rounded, size: 17, color: surfaces.faint),
+            ],
+          ),
+          if (sound.active != null)
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: sound.stop,
+                icon: const Icon(Icons.stop_rounded, size: 17),
+                label: const Text('停止环境音'),
+              ),
+            ),
+          if (sound.error != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              sound.error!,
+              style: TextStyle(fontSize: 11, color: scheme.error),
+            ),
+          ],
+        ],
       ),
     );
   }

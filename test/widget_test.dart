@@ -196,13 +196,13 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.person_outline_rounded));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('GitHub Gist 同步'));
+    await tester.ensureVisible(find.text('文件服务器同步'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('GitHub Gist 同步'));
+    await tester.tap(find.text('文件服务器同步'));
     await tester.pumpAndSettle();
 
     expect(find.text('跨设备同步'), findsWidgets);
-    expect(find.text('GitHub Token'), findsOneWidget);
+    expect(find.text('服务器类型'), findsOneWidget);
     expect(find.text('保存并同步'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -261,6 +261,24 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('习惯节奏'), findsOneWidget);
     expect(find.text('每天'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('安全与权限页可查看且不触发额外授权', (tester) async {
+    await _pumpApp(tester);
+    await tester.tap(find.byIcon(Icons.person_outline_rounded));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('安全与权限'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('安全与权限'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('把数据，留在自己手里'), findsOneWidget);
+    expect(find.text('权限按需申请'), findsOneWidget);
+    expect(find.text('不会申请的权限'), findsOneWidget);
+    await tester.tap(find.byTooltip('返回'));
+    await tester.pumpAndSettle();
+    expect(find.text('好好生活，慢慢专注'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

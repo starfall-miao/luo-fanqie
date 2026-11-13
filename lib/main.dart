@@ -5,6 +5,7 @@ import 'app.dart';
 import 'core/notifications/timer_notification_service.dart';
 import 'core/storage/key_value_storage.dart';
 import 'features/settings/providers/settings_controller.dart';
+import 'features/soundscape/soundscape_controller.dart';
 import 'features/stats/providers/stats_controller.dart';
 import 'features/sync/providers/sync_controller.dart';
 import 'features/tasks/providers/task_controller.dart';
@@ -33,6 +34,7 @@ class _LuoFanqieBootstrapState extends State<LuoFanqieBootstrap> {
   late final StatsController _stats;
   late final PomodoroController _timer;
   late final SyncController _sync;
+  late final SoundscapeController _soundscape;
 
   @override
   void initState() {
@@ -54,10 +56,12 @@ class _LuoFanqieBootstrapState extends State<LuoFanqieBootstrap> {
       storage: widget.storage,
       clock: widget.clock,
     );
+    _soundscape = SoundscapeController();
   }
 
   @override
   void dispose() {
+    _soundscape.dispose();
     _sync.dispose();
     _timer.dispose();
     _settings.dispose();
@@ -75,6 +79,7 @@ class _LuoFanqieBootstrapState extends State<LuoFanqieBootstrap> {
         ChangeNotifierProvider.value(value: _stats),
         ChangeNotifierProvider.value(value: _timer),
         ChangeNotifierProvider.value(value: _sync),
+        ChangeNotifierProvider.value(value: _soundscape),
       ],
       child: const LuoFanqieApp(),
     );

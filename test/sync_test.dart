@@ -6,9 +6,11 @@ import 'package:http/testing.dart';
 import 'package:luo_fanqie_app/core/storage/key_value_storage.dart';
 import 'package:luo_fanqie_app/features/stats/models/focus_session.dart';
 import 'package:luo_fanqie_app/features/stats/providers/stats_controller.dart';
+import 'package:luo_fanqie_app/features/sync/models/sync_config.dart';
 import 'package:luo_fanqie_app/features/sync/models/sync_snapshot.dart';
 import 'package:luo_fanqie_app/features/sync/providers/sync_controller.dart';
-import 'package:luo_fanqie_app/features/sync/services/gist_sync_client.dart';
+import 'package:luo_fanqie_app/features/sync/services/remote_sync_store.dart';
+import 'package:luo_fanqie_app/features/sync/services/webdav_sync_store.dart';
 import 'package:luo_fanqie_app/features/tasks/models/task.dart';
 import 'package:luo_fanqie_app/features/tasks/providers/task_controller.dart';
 
@@ -54,6 +56,15 @@ void main() {
       deletedTasks: deleted,
     );
   }
+
+  SyncConfig webDavConfig({bool autoSync = false}) => SyncConfig(
+    type: SyncServerType.webdav,
+    serverUrl: 'https://dav.example.com/base/',
+    username: 'user',
+    password: 'pass',
+    remotePath: '番茄',
+    autoSync: autoSync,
+  );
 
   group('同步快照合并', () {
     test('取较新的任务版本，并按 id 合并专注记录', () {
@@ -107,7 +118,6 @@ void main() {
           task('b', title: '保留的任务', updatedAt: now),
         ],
       );
-
       final merged = SyncSnapshot.merge(local, remote);
       expect(merged.tasks.map((task) => task.id), isNot(contains('a')));
       expect(merged.tasks.map((task) => task.id), contains('b'));
@@ -140,97 +150,93 @@ void main() {
     });
   });
 
-  group('Gist 同步客户端', () {
-    test('没有远端数据时返回空快照', () async {
-      final client = GistSyncClient(
-        token: 'token',
-        httpClient: MockClient((request) async {
-          expect(request.url.path, '/gists');
-          expect(request.headers['Authorization'], 'Bearer token');
-          return http.Response('[]', 200);
-        }),
-      );
-      final remote = await client.pull();
-      expect(remote.snapshot, isNull);
-      expect(remote.gistId, isNull);
-      client.close();
-    });
-
-    test('指定 Gist 时读取并解析快照', () async {
+  group('WebDAV 同步客户端', () {
+    test('从用户服务器读取快照，使用 Basic Auth 和远端目录', () async {
       final remoteSnapshot = snapshot(
         tasks: [task('a', title: '远端任务', updatedAt: now)],
       );
-      final client = GistSyncClient(
-        token: 'token',
-        gistId: 'gist-1',
+      final client = WebDavSyncStore(
+        config: webDavConfig(),
         httpClient: MockClient((request) async {
-          expect(request.url.path, '/gists/gist-1');
+          expect(request.method, 'GET');
+          expect(
+            request.url.toString(),
+            'https://dav.example.com/base/%E7%95%AA%E8%8C%84/luo-fanqie-sync.json',
+          );
+          expect(
+            request.headers['Authorization'],
+            'Basic ${base64Encode(utf8.encode('user:pass'))}',
+          );
           return http.Response(
-            jsonEncode({
-              'files': {
-                'luo-fanqie-sync.json': {
-                  'content': remoteSnapshot.encode(),
-                  'truncated': false,
-                },
-              },
-            }),
+            remoteSnapshot.encode(),
             200,
             headers: const {'content-type': 'application/json; charset=utf-8'},
           );
         }),
       );
-      final remote = await client.pull();
-      expect(remote.gistId, 'gist-1');
-      expect(remote.snapshot!.tasks.single.title, '远端任务');
+      final content = await client.download();
+      expect(content, isNotNull);
+      expect(SyncSnapshot.decode(content!).tasks.single.title, '远端任务');
       client.close();
     });
 
-    test('首次推送会创建私密 Gist 并返回 id', () async {
-      var created = false;
-      final client = GistSyncClient(
-        token: 'token',
-        httpClient: MockClient((request) async {
-          if (request.method == 'GET') return http.Response('[]', 200);
-          expect(request.method, 'POST');
-          expect(request.url.path, '/gists');
-          final body = jsonDecode(request.body) as Map<String, dynamic>;
-          expect(body['public'], isFalse);
-          expect(body['description'], contains('落·番茄'));
-          created = true;
-          return http.Response(jsonEncode({'id': 'new-gist'}), 201);
-        }),
+    test('文件不存在时返回 null，而不是报错', () async {
+      final client = WebDavSyncStore(
+        config: webDavConfig(),
+        httpClient: MockClient((request) async => http.Response('', 404)),
       );
-      final id = await client.push(snapshot(tasks: const []));
-      expect(created, isTrue);
-      expect(id, 'new-gist');
-      expect(client.gistId, 'new-gist');
+      expect(await client.download(), isNull);
       client.close();
     });
 
-    test('无效 Token 会返回可读的错误', () async {
-      final client = GistSyncClient(
-        token: 'bad',
-        gistId: 'gist-1',
+    test('上传时写入 JSON，认证失败给出可读错误', () async {
+      var uploaded = false;
+      final client = WebDavSyncStore(
+        config: webDavConfig(),
         httpClient: MockClient((request) async {
-          return http.Response('{"message":"Bad credentials"}', 401);
+          if (request.method == 'PUT') {
+            expect(
+              request.headers['Content-Type'],
+              contains('application/json'),
+            );
+            final body = jsonDecode(utf8.decode(request.bodyBytes));
+            expect(body['schemaVersion'], 1);
+            uploaded = true;
+            return http.Response('', 201);
+          }
+          return http.Response('', 401);
         }),
       );
+      await client.upload(snapshot(tasks: const []).encode());
+      expect(uploaded, isTrue);
       expect(
-        () => client.pull(),
+        () => client.download(),
         throwsA(
           isA<SyncException>().having(
             (error) => error.message,
             'message',
-            contains('Token 无效'),
+            contains('用户名或密码'),
           ),
         ),
       );
       client.close();
     });
+
+    test('拒绝非 http(s) 的服务器地址', () async {
+      final client = WebDavSyncStore(
+        config: const SyncConfig(
+          type: SyncServerType.webdav,
+          serverUrl: 'dav.example.com',
+        ),
+        httpClient: MockClient((request) async => http.Response('', 200)),
+      );
+      expect(() => client.download(), throwsA(isA<SyncException>()));
+      client.close();
+    });
   });
 
   group('同步控制器', () {
-    test('合并远端数据、写回本地并保存 Gist id', () async {
+    test('合并远端数据、写回文件服务器并保存同步时间', () async {
       final storage = MemoryStorage();
       final tasks = TaskController(storage, clock: () => now);
       final stats = StatsController(storage, clock: () => now);
@@ -249,35 +255,30 @@ void main() {
       );
       final remoteSession = session('remote-session');
       final fakeStore = _FakeStore(
-        RemoteSyncData(
-          gistId: 'gist-1',
-          snapshot: snapshot(
-            device: 'other',
-            tasks: [remoteTask],
-            sessions: [remoteSession],
-          ),
-        ),
+        remote: snapshot(
+          device: 'other',
+          tasks: [remoteTask],
+          sessions: [remoteSession],
+        ).encode(),
       );
-
       final sync = SyncController(
         tasks: tasks,
         stats: stats,
         storage: storage,
         scheduleAutoSyncOnStart: false,
-        storeFactory: (token, gistId) => fakeStore,
+        storeFactory: (config) => fakeStore,
       );
-      sync.configure(token: 'token', autoSync: false);
+      sync.configure(webDavConfig());
       final ok = await sync.syncNow();
 
       expect(ok, isTrue);
       expect(sync.status, SyncStatus.success);
-      expect(sync.gistId, 'gist-1');
       expect(tasks.taskById('remote'), isNotNull);
       expect(tasks.taskById('local'), isNotNull);
       expect(stats.sessions.map((s) => s.id), contains('remote-session'));
-      expect(fakeStore.pushed, isNotNull);
-      expect(fakeStore.pushed!.tasks, hasLength(greaterThanOrEqualTo(2)));
-      expect(fakeStore.pushed!.deviceId, sync.deviceId);
+      expect(fakeStore.uploaded, isNotNull);
+      expect(fakeStore.uploaded, contains('remote'));
+      expect(sync.lastSyncAt, isNotNull);
       sync.dispose();
       tasks.dispose();
       stats.dispose();
@@ -292,9 +293,9 @@ void main() {
         stats: stats,
         storage: storage,
         scheduleAutoSyncOnStart: false,
-        storeFactory: (token, gistId) => _FailingStore(),
+        storeFactory: (config) => _FailingStore(),
       );
-      sync.configure(token: 'token', autoSync: false);
+      sync.configure(webDavConfig());
       final ok = await sync.syncNow();
       expect(ok, isFalse);
       expect(sync.status, SyncStatus.error);
@@ -305,30 +306,45 @@ void main() {
       stats.dispose();
     });
 
-    test('删除任务会产生墓碑并参与下一次推送', () async {
+    test('删除任务会产生墓碑并参与下一次写入', () async {
       final storage = MemoryStorage();
       final tasks = TaskController(storage, clock: () => now);
       final stats = StatsController(storage, clock: () => now);
-      final fakeStore = _FakeStore(
-        const RemoteSyncData(gistId: 'gist-1', snapshot: null),
-      );
+      final fakeStore = _FakeStore();
       final sync = SyncController(
         tasks: tasks,
         stats: stats,
         storage: storage,
         scheduleAutoSyncOnStart: false,
-        storeFactory: (token, gistId) => fakeStore,
+        storeFactory: (config) => fakeStore,
       );
       final taskId = tasks.tasks.first.id;
       tasks.remove(taskId);
-      sync.configure(token: 'token', autoSync: false);
+      sync.configure(webDavConfig());
       await sync.syncNow();
 
-      expect(fakeStore.pushed!.deletedTasks.keys, contains(taskId));
-      expect(
-        fakeStore.pushed!.tasks.map((task) => task.id),
-        isNot(contains(taskId)),
+      final uploaded = SyncSnapshot.decode(fakeStore.uploaded!);
+      expect(uploaded.deletedTasks.keys, contains(taskId));
+      expect(uploaded.tasks.map((task) => task.id), isNot(contains(taskId)));
+      sync.dispose();
+      tasks.dispose();
+      stats.dispose();
+    });
+
+    test('未配置服务器时不会发起同步', () async {
+      final storage = MemoryStorage();
+      final tasks = TaskController(storage, clock: () => now);
+      final stats = StatsController(storage, clock: () => now);
+      final sync = SyncController(
+        tasks: tasks,
+        stats: stats,
+        storage: storage,
+        scheduleAutoSyncOnStart: false,
+        storeFactory: (config) => _FakeStore(),
       );
+      final ok = await sync.syncNow();
+      expect(ok, isFalse);
+      expect(sync.lastError, contains('设置'));
       sync.dispose();
       tasks.dispose();
       stats.dispose();
@@ -337,20 +353,22 @@ void main() {
 }
 
 class _FakeStore implements RemoteSyncStore {
-  _FakeStore(this.remote);
+  _FakeStore({this.remote});
 
-  final RemoteSyncData remote;
-  SyncSnapshot? pushed;
+  final String? remote;
+  String? uploaded;
   bool closed = false;
 
   @override
-  Future<RemoteSyncData> pull() async => remote;
+  Future<String?> download() async => remote;
 
   @override
-  Future<String> push(SyncSnapshot snapshot) async {
-    pushed = snapshot;
-    return 'gist-1';
+  Future<void> upload(String content) async {
+    uploaded = content;
   }
+
+  @override
+  Future<void> test() async {}
 
   @override
   void close() {
@@ -360,12 +378,15 @@ class _FakeStore implements RemoteSyncStore {
 
 class _FailingStore implements RemoteSyncStore {
   @override
-  Future<RemoteSyncData> pull() async {
+  Future<String?> download() async {
     throw const SyncException('网络连接失败');
   }
 
   @override
-  Future<String> push(SyncSnapshot snapshot) async => 'gist-1';
+  Future<void> upload(String content) async {}
+
+  @override
+  Future<void> test() async {}
 
   @override
   void close() {}
