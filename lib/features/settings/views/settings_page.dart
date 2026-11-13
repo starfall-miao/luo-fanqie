@@ -249,6 +249,19 @@ class SettingsPage extends StatelessWidget {
                               if (value) await _ensureStrictGuard(context);
                             },
                           ),
+                          if (!kIsWeb &&
+                              defaultTargetPlatform ==
+                                  TargetPlatform.android) ...[
+                            _RowDivider(),
+                            _SettingRow(
+                              icon: Icons.accessibility_new_rounded,
+                              title: '学霸守护设置',
+                              subtitle: '打开系统无障碍设置，开启或关闭置顶守护',
+                              value: '',
+                              onTap: () => const ImmersiveModeService()
+                                  .openAccessibilitySettings(),
+                            ),
+                          ],
                           _RowDivider(),
                           _SwitchRow(
                             icon: Icons.volume_up_outlined,
