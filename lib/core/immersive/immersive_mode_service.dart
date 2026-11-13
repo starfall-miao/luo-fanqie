@@ -1,37 +1,71 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
-/// 沉浸式专注页的系统能力：屏幕固定与常亮。
+/// 沉浸式专注页的系统能力。
 ///
-/// Android 上使用屏幕固定（pin）而不是设备管理员，用户可以随时用系统手势
-/// 退出，符合透明、可退出的产品原则。其他平台全部降级为 no-op。
+/// 学霸守护使用 Android 无障碍服务绘制全屏置顶提醒：
+/// 只在开启学霸模式期间读取当前前台应用包名，不读取屏幕内容；
+/// 用户可随时点「结束守护」或在系统设置中关闭服务。
 class ImmersiveModeService {
   const ImmersiveModeService();
 
   static const _channel = MethodChannel('dev.luofanqie/immersive');
 
-  bool get _supported =>
+  bool get supported =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
-  Future<void> enter({required bool lockTask}) async {
-    if (!_supported) return;
-    await _invoke('keepScreenOn');
-    if (lockTask) await _invoke('startLockTask');
+  Future<void> enter() async {
+    if (!supported) return;
+    await _invoke<void>('keepScreenOn');
   }
 
   Future<void> leave() async {
-    if (!_supported) return;
-    await _invoke('stopLockTask');
-    await _invoke('clearKeepScreenOn');
+    if (!supported) return;
+    await _invoke<void>('stopStrictGuard');
+    await _invoke<void>('clearKeepScreenOn');
   }
 
-  Future<void> _invoke(String method) async {
+  /// 专注自然结束时使用：保留学霸守护的到点回跳，仅关闭常亮。
+  Future<void> clearKeepScreenOn() async {
+    if (!supported) return;
+    await _invoke<void>('clearKeepScreenOn');
+  }
+
+  Future<bool> isStrictGuardEnabled() async {
+    if (!supported) return false;
+    return await _invoke<bool>('isStrictGuardEnabled') ?? false;
+  }
+
+  Future<void> openAccessibilitySettings() async {
+    if (!supported) return;
+    await _invoke<void>('openAccessibilitySettings');
+  }
+
+  Future<bool> startStrictGuard({
+    required DateTime endAt,
+    required String title,
+  }) async {
+    if (!supported) return false;
+    return await _invoke<bool>('startStrictGuard', <String, Object>{
+          'endAtMillis': endAt.millisecondsSinceEpoch,
+          'title': title,
+        }) ??
+        false;
+  }
+
+  Future<void> stopStrictGuard() async {
+    if (!supported) return;
+    await _invoke<void>('stopStrictGuard');
+  }
+
+  Future<T?> _invoke<T>(String method, [Map<String, Object>? args]) async {
     try {
-      await _channel.invokeMethod<void>(method);
+      return await _channel.invokeMethod<T>(method, args);
     } on MissingPluginException {
-      // 非 Android 环境或热重载时忽略。
+      return null;
     } on PlatformException catch (error) {
       debugPrint('沉浸式模式调用失败：${error.code} ${error.message}');
+      return null;
     }
   }
 }

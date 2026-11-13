@@ -13,19 +13,30 @@ class AppBackground extends StatelessWidget {
     final surfaces = context.surfaces;
     final scheme = Theme.of(context).colorScheme;
     final overlayTop = surfaces.canvasTop.withValues(
-      alpha: context.isDark ? 0.70 : 0.52,
+      alpha: context.isDark ? 0.55 : 0.58,
     );
     final overlayBottom = surfaces.canvasBottom.withValues(
-      alpha: context.isDark ? 0.82 : 0.62,
+      alpha: context.isDark ? 0.62 : 0.66,
     );
     return Stack(
       fit: StackFit.expand,
       children: [
+        // 先用不透明渐变铺满整个视口，避免滚动到底部时露出白色断层。
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [surfaces.canvasTop, surfaces.canvasBottom],
+            ),
+          ),
+        ),
         Image.asset(
           'assets/images/sunset_ocean.jpg',
           fit: BoxFit.cover,
           alignment: Alignment.center,
-          filterQuality: FilterQuality.medium,
+          filterQuality: FilterQuality.low,
+          opacity: const AlwaysStoppedAnimation<double>(0.32),
         ),
         DecoratedBox(
           decoration: BoxDecoration(

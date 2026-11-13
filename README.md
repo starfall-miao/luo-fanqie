@@ -4,7 +4,7 @@
 
 <p>
   <img alt="status" src="https://img.shields.io/badge/status-beta-orange" />
-  <img alt="version" src="https://img.shields.io/badge/version-1.4.0--beta-f15b3d" />
+  <img alt="version" src="https://img.shields.io/badge/version-1.5.0--beta-f15b3d" />
   <img alt="flutter" src="https://img.shields.io/badge/Flutter-3.47.9-027DFD?logo=flutter" />
   <a href="https://github.com/starfall-miao/luo-fanqie/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/starfall-miao/luo-fanqie/actions/workflows/ci.yml/badge.svg" /></a>
   <a href="https://github.com/starfall-miao/luo-fanqie/releases"><img alt="beta release" src="https://img.shields.io/badge/release-beta-orange?logo=github" /></a>
@@ -16,7 +16,9 @@
 - **定目标**：在目标日期前累计完成指定量，支持分钟 / 小时 / 次数 / 自定义单位。
 - **养习惯**：每天、每周选几天、每月选几天，或设置每周 / 每月完成量。
 - 每种待办都可以单独设定单次专注时长，支持自定义标签和一键开始。
-- 横屏 / 平板 / 电脑端取消标签栏，一页卡片仪表盘展示全部核心内容。
+- 横屏 / 平板 / 电脑端取消标签栏，一页卡片仪表盘展示全部核心内容，并可打开完整统计。
+- 猫娘看板娘「落落」陪你专注，会眨眼、抱着书，也会说一些温柔的话。
+- 毛玻璃可关闭；默认使用轻量纯色卡片，低端机更流畅。
 - 开始专注后进入沉浸式会话页：柔和背景、激励文案、最小化、工具与学霸模式。
 - 可选 **用户自建文件服务器同步**（WebDAV / OpenAlist / FTP）；Android 原生通知；六端 Beta 自动构建。
 
@@ -34,11 +36,6 @@
   <img src="docs/screenshots/11-session.png" width="230" alt="沉浸专注页" />
   <br />
   <sub>竖屏专注 · 等待办列表 · 沉浸式会话页</sub>
-</p>
-
-<p align="center">
-  <img src="docs/screenshots/09-wide-settings.png" width="360" alt="宽屏设置" />
-  <img src="docs/screenshots/10-wide-task-editor.png" width="360" alt="新建待办" />
 </p>
 
 ---
@@ -72,6 +69,8 @@
 
 **自定义标签**：标签输入框直接写，例如「备考」「论文」「晨间」，不需要从预设选项里挑；颜色由标签文本稳定生成。
 
+**多选**：长按待办或点击右上角的「多选」进入选择模式，再批量完成或删除；点击圆圈只切换完成状态，不再通过滑动误删。
+
 **快速开始**：横屏仪表盘、待办列表和空状态都提供快速开始入口。普通番茄可以脱离具体任务直接开始；任务卡片的开始按钮会使用该任务自己的专注时长。
 
 **进度计算**：一次完成的专注按单位累计——分钟 / 小时累加专注分钟，次数与自定义单位每次 +1；习惯在每日 / 每周 / 每月周期切换时重置周期进度（保留历史专注记录）。
@@ -90,11 +89,11 @@
 - 点击开始后进入独立的**沉浸式会话页**：柔和渐变背景、随机激励文案、圆形倒计时。
 - 顶部可最小化回仪表盘，计时继续；可以打开环境音（雨声 / 海浪 / 篝火），全部为本地音频。
 - 底部有小工具（今日数据、环境音、学霸状态）。
-- **学霸模式**（设置中开启）：
-  - Android 上尝试进入系统屏幕固定（screen pinning），并保持屏幕常亮；
+- **学霸模式**（设置中开启，可选无障碍守护）：
+  - Android 可选「无障碍置顶守护」：切到其他 App 时铺满全屏提醒，计时结束自动回到应用；
   - 会话页隐藏暂停与最小化，返回键被拦截；
-  - 只保留“结束锁机”的显式退出，系统手势仍可解除固定；
-  - 不使用设备管理员、不隐藏桌面图标、不阻止卸载，避免恶意软件式行为。
+  - **只读取当前前台应用包名，不读取屏幕文字、密码或聊天内容，也不执行手势**；可随时点「结束守护」；
+  - 不使用设备管理员、不申请悬浮窗权限，也不会阻止卸载。
 
 ## 计时、统计与同步
 
@@ -144,7 +143,7 @@ flutter build apk --release
 ### 测试
 
 ```bash
-flutter test          # 46 项单元 / 组件测试（截图测试默认跳过）
+flutter test          # 49 项单元 / 组件测试（截图测试默认跳过）
 dart analyze
 ```
 
@@ -174,7 +173,7 @@ lib/
 ├── main.dart / app.dart
 ├── core/
 │   ├── notifications/        # Android AlarmManager 通知
-│   ├── immersive/            # 屏幕固定 / 常亮桥接
+│   ├── immersive/            # 无障碍置顶守护 / 常亮桥接
 │   ├── storage/
 │   ├── theme/
 │   └── utils/
@@ -201,17 +200,18 @@ android/ · ios/ · macos/ · windows/ · linux/ · web/
 - 建议使用 HTTPS WebDAV 或 FTPS；普通 FTP 会以明文传输密码和同步数据。
 - 同步服务器地址、用户名与密码保存在应用私有存储中，目前依赖系统沙盒保护，不是独立加密保险箱；共享设备上请及时断开。
 - 完整权限申请逻辑、数据流向与已知边界见 [`SECURITY.md`](SECURITY.md)。
-- 学霸模式的系统屏幕固定只在 Android 生效；iOS / 桌面只有应用内限制。
+- 学霸守护只在 Android 生效，且需要用户手动开启无障碍服务；iOS / 桌面只有应用内限制。
 - **不会实现**：阻止其他 App 启动、拦截所有系统通知、隐藏桌面图标、防卸载等依赖辅助功能 / 设备管理员 / 定制 ROM 的强制性能力。这与平台政策、用户安全与“可退出”原则冲突。
-- 当前未完成：iOS 本地通知、更多主题、桌面小组件、更多环境音。
+- 当前未完成：iOS 本地通知、更多主题、桌面小组件、更多环境音、更完整的习惯日历。
 
 ## Roadmap
 
 - [x] 任务驱动：普通番茄 / 定目标 / 养习惯、自定义标签、单次时长
 - [x] 横屏单页卡片仪表盘，无标签栏
-- [x] 沉浸式会话页、Android 屏幕固定的学霸模式、本地环境音
+- [x] 沉浸式会话页、Android 无障碍置顶学霸守护、本地环境音
 - [x] 用户自建文件服务器同步（WebDAV / Alist / FTP）、Android 通知、六端 Actions Beta
 - [x] 白噪音与背景音（雨声 / 海浪 / 篝火，本地音频）
+- [x] 落落猫娘看板娘、多选待办、横屏完整统计、可选毛玻璃
 - [ ] 更完整的习惯打卡日历与目标复盘
 - [ ] iOS 本地通知、桌面通知
 - [ ] 更多主题与小组件
@@ -222,4 +222,4 @@ android/ · ios/ · macos/ · windows/ · linux/ · web/
 - 截图字体：[Noto Sans CJK SC](https://github.com/notofonts/noto-cjk)（SIL Open Font License，已附带许可证）
 - [fl_chart](https://github.com/imaNNeo/fl_chart)、[provider](https://pub.dev/packages/provider)、[shared_preferences](https://pub.dev/packages/shared_preferences)、[http](https://pub.dev/packages/http)
 
-<sub>当前版本：1.4.0 · Beta · 先定待办，再定时间。</sub>
+<sub>当前版本：1.5.0 · Beta · 先定待办，再定时间。</sub>

@@ -8,6 +8,7 @@ import '../../../core/utils/date_utils.dart';
 import '../../../shared/widgets/common.dart';
 import '../../../shared/widgets/soft_card.dart';
 import '../../../shared/widgets/tomato_mark.dart';
+import '../../companion/luoluo_mascot.dart';
 import '../../focus/views/session_page.dart';
 import '../../focus/views/widgets/task_picker_sheet.dart';
 import '../../focus/views/widgets/timer_dial.dart';
@@ -25,13 +26,23 @@ import '../../timer/theme/phase_style.dart';
 
 /// 横屏/桌面端仪表盘：不显示标签栏，所有核心内容以卡片铺在一页。
 class LandscapeDashboard extends StatelessWidget {
-  const LandscapeDashboard({super.key, required this.onOpenSettings});
+  const LandscapeDashboard({
+    super.key,
+    required this.onOpenSettings,
+    required this.onOpenStats,
+  });
 
   final VoidCallback onOpenSettings;
+  final VoidCallback onOpenStats;
 
   @override
   Widget build(BuildContext context) {
-    final timer = context.watch<PomodoroController>();
+    final selectedTaskId = context.select<PomodoroController, String?>(
+      (timer) => timer.selectedTaskId,
+    );
+    final timerRunning = context.select<PomodoroController, bool>(
+      (timer) => timer.isRunning,
+    );
     final tasks = context.watch<TaskController>();
     final stats = context.watch<StatsController>();
     final settings = context.watch<SettingsController>().settings;
@@ -44,7 +55,7 @@ class LandscapeDashboard extends StatelessWidget {
           children: [
             _DashboardHeader(
               now: now,
-              timer: timer,
+              timerRunning: timerRunning,
               stats: stats,
               onOpenSettings: onOpenSettings,
             ),
@@ -55,21 +66,16 @@ class LandscapeDashboard extends StatelessWidget {
                 children: [
                   Expanded(
                     flex: 4,
-                    child: _FocusCard(
-                      timer: timer,
-                      task: timer.selectedTask,
-                      settings: settings,
-                      stats: stats,
-                    ),
+                    child: _FocusCard(settings: settings, stats: stats),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
                     flex: 5,
                     child: _TasksCard(
                       tasks: tasks,
-                      timer: timer,
+                      selectedTaskId: selectedTaskId,
                       onStart: (task) {
-                        if (timer.isRunning) {
+                        if (context.read<PomodoroController>().isRunning) {
                           ScaffoldMessenger.of(context)
                             ..hideCurrentSnackBar()
                             ..showSnackBar(
@@ -91,8 +97,8 @@ class LandscapeDashboard extends StatelessWidget {
                     child: _InsightsColumn(
                       tasks: tasks,
                       stats: stats,
-                      timer: timer,
                       onOpenSettings: onOpenSettings,
+                      onOpenStats: onOpenStats,
                     ),
                   ),
                 ],
@@ -108,13 +114,13 @@ class LandscapeDashboard extends StatelessWidget {
 class _DashboardHeader extends StatelessWidget {
   const _DashboardHeader({
     required this.now,
-    required this.timer,
+    required this.timerRunning,
     required this.stats,
     required this.onOpenSettings,
   });
 
   final DateTime now;
-  final PomodoroController timer;
+  final bool timerRunning;
   final StatsController stats;
   final VoidCallback onOpenSettings;
 
@@ -122,9 +128,15 @@ class _DashboardHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
     final sync = context.watch<SyncController>();
+    final companionOn = context.select<SettingsController, bool>(
+      (controller) => controller.settings.companionEnabled,
+    );
     return Row(
       children: [
-        const TomatoMark(size: 38, withGlow: true),
+        if (companionOn)
+          LuoLuoMascot(size: 46, studying: timerRunning)
+        else
+          const TomatoMark(size: 38, withGlow: true),
         const SizedBox(width: 11),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -136,7 +148,7 @@ class _DashboardHeader extends StatelessWidget {
                   style: Theme.of(context).textTheme.headlineSmall
                       ?.copyWith(fontSize: 21, letterSpacing: 1.4),
                 ),
-                if (timer.isRunning) ...[
+                if (timerRunning) ...[
                   const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -161,7 +173,7 @@ class _DashboardHeader extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              '${greetingForHour(now.hour)}，把时间种成番茄',
+              '${greetingForHour(now.hour)}，落落陪你种番茄',
               style: TextStyle(fontSize: 11, color: surfaces.muted),
             ),
           ],
@@ -213,21 +225,16 @@ class _DashboardHeader extends StatelessWidget {
 }
 
 class _FocusCard extends StatelessWidget {
-  const _FocusCard({
-    required this.timer,
-    required this.task,
-    required this.settings,
-    required this.stats,
-  });
+  const _FocusCard({required this.settings, required this.stats});
 
-  final PomodoroController timer;
-  final Task? task;
   final AppSettings settings;
   final StatsController stats;
 
   @override
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
+    final timer = context.watch<PomodoroController>();
+    final task = timer.selectedTask;
     final dialSize = math.min(MediaQuery.sizeOf(context).width * 0.22, 272.0);
     return SoftCard(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
@@ -451,7 +458,7 @@ class _CompactTaskSelector extends StatelessWidget {
             Expanded(
               child: Text(
                 task?.title ?? '选择一个待办',
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 11.5,
@@ -471,12 +478,12 @@ class _CompactTaskSelector extends StatelessWidget {
 class _TasksCard extends StatelessWidget {
   const _TasksCard({
     required this.tasks,
-    required this.timer,
+    required this.selectedTaskId,
     required this.onStart,
   });
 
   final TaskController tasks;
-  final PomodoroController timer;
+  final String? selectedTaskId;
   final ValueChanged<Task> onStart;
 
   @override
@@ -512,7 +519,7 @@ class _TasksCard extends StatelessWidget {
             child: pending.isEmpty
                 ? Center(
                     child: Text(
-                      '番茄田还是空的。\n先种下一颗待办吧。',
+                      '番茄田空空的，\n落落等你种下第一颗。',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 12,
@@ -529,7 +536,7 @@ class _TasksCard extends StatelessWidget {
                       final task = pending[index];
                       return _DashboardTaskTile(
                         task: task,
-                        selected: timer.selectedTaskId == task.id,
+                        selected: selectedTaskId == task.id,
                         onTap: () => showTaskEditor(context, task: task),
                         onStart: () => onStart(task),
                         onToggle: task.isHabit
@@ -621,7 +628,7 @@ class _DashboardTaskTile extends StatelessWidget {
                         Expanded(
                           child: Text(
                             task.title,
-                            maxLines: 1,
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 12.5,
@@ -727,14 +734,14 @@ class _InsightsColumn extends StatelessWidget {
   const _InsightsColumn({
     required this.tasks,
     required this.stats,
-    required this.timer,
     required this.onOpenSettings,
+    required this.onOpenStats,
   });
 
   final TaskController tasks;
   final StatsController stats;
-  final PomodoroController timer;
   final VoidCallback onOpenSettings;
+  final VoidCallback onOpenStats;
 
   @override
   Widget build(BuildContext context) {
@@ -749,12 +756,12 @@ class _InsightsColumn extends StatelessWidget {
           _TodayOverview(
             stats: stats,
             goal: settings.settings.dailyGoalMinutes,
+            onOpenStats: onOpenStats,
           ),
           const SizedBox(height: 12),
           _TargetsOverview(targets: targets),
           const SizedBox(height: 12),
           _QuickActions(
-            timer: timer,
             settingsController: settings,
             onOpenSettings: onOpenSettings,
           ),
@@ -765,10 +772,15 @@ class _InsightsColumn extends StatelessWidget {
 }
 
 class _TodayOverview extends StatelessWidget {
-  const _TodayOverview({required this.stats, required this.goal});
+  const _TodayOverview({
+    required this.stats,
+    required this.goal,
+    required this.onOpenStats,
+  });
 
   final StatsController stats;
   final int goal;
+  final VoidCallback onOpenStats;
 
   @override
   Widget build(BuildContext context) {
@@ -784,10 +796,13 @@ class _TodayOverview extends StatelessWidget {
           SectionTitle(
             title: '今日专注',
             subtitle: '${stats.todaySessions} 颗番茄',
-            trailing: Icon(
-              Icons.insights_rounded,
-              size: 16,
-              color: surfaces.faint,
+            trailing: TextButton(
+              onPressed: onOpenStats,
+              style: TextButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+              ),
+              child: const Text('完整统计'),
             ),
           ),
           const SizedBox(height: 9),
@@ -948,18 +963,17 @@ class _TargetRow extends StatelessWidget {
 
 class _QuickActions extends StatelessWidget {
   const _QuickActions({
-    required this.timer,
     required this.settingsController,
     required this.onOpenSettings,
   });
 
-  final PomodoroController timer;
   final SettingsController settingsController;
   final VoidCallback onOpenSettings;
 
   @override
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
+    final timer = context.watch<PomodoroController>();
     final sync = context.watch<SyncController>();
     final mode = settingsController.settings.themeMode;
     return SoftCard(

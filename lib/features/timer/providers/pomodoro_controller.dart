@@ -54,7 +54,7 @@ class PomodoroController extends ChangeNotifier {
   }
 
   static const _storageKey = 'luo_fanqie.timer.v1';
-  static const _tickInterval = Duration(milliseconds: 200);
+  static const _tickInterval = Duration(milliseconds: 500);
 
   final TaskController _tasks;
   final StatsController _stats;
@@ -73,6 +73,9 @@ class PomodoroController extends ChangeNotifier {
   int _completedInCycle = 0;
   String? _selectedTaskId;
   DateTime? _endAt;
+
+  /// 自然结束时间；未运行时为 null。学霸守护用它同步倒计时。
+  DateTime? get endAt => _endAt;
   DateTime? _phaseStartedAt;
   Timer? _ticker;
 

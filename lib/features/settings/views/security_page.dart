@@ -86,8 +86,12 @@ class SecurityPage extends StatelessWidget {
                           text: '精确闹钟：不主动弹窗；没有授权时自动使用近似提醒。可在系统设置中为落·番茄单独开启。',
                         ),
                         _SecurityLine(
-                          icon: Icons.push_pin_outlined,
-                          text: '屏幕固定：只在开启学霸模式并开始专注时进入，系统会要求你确认；随时可用系统手势退出。',
+                          icon: Icons.accessibility_new_rounded,
+                          text: '无障碍守护：只在你开启学霸模式并开始专注后工作；只读取当前前台应用包名，不读取屏幕文字、密码或聊天内容。',
+                        ),
+                        _SecurityLine(
+                          icon: Icons.fullscreen_rounded,
+                          text: '置顶提醒：离开落·番茄时由无障碍服务绘制全屏提醒，计时结束自动回到应用；可随时点「结束守护」或关闭系统无障碍服务。',
                         ),
                         _SecurityLine(
                           icon: Icons.wifi_off_rounded,
@@ -106,7 +110,7 @@ class SecurityPage extends StatelessWidget {
                         ),
                         _SecurityLine(
                           icon: Icons.close_rounded,
-                          text: '辅助功能、设备管理员、悬浮窗、安装未知应用等高风险权限。',
+                          text: '设备管理员、悬浮窗权限、安装未知应用、读取其他应用内容等高风险能力。',
                         ),
                         _SecurityLine(
                           icon: Icons.close_rounded,

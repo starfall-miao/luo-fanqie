@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/immersive/immersive_mode_service.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../shared/widgets/common.dart';
 import '../../../shared/widgets/soft_card.dart';
@@ -18,6 +20,34 @@ import '../../tasks/providers/task_controller.dart';
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
+  Future<void> _ensureStrictGuard(BuildContext context) async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+    const service = ImmersiveModeService();
+    final enabled = await service.isStrictGuardEnabled();
+    if (enabled || !context.mounted) return;
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('开启学霸守护？'),
+        content: const Text(
+          '学霸模式可以用「无障碍置顶守护」在你切到其他 App 时，铺满屏幕提醒你回到专注，并在计时结束后自动回到落·番茄。\n\n'
+          '它只读取当前前台应用的包名，不读取屏幕文字、密码或聊天内容。你可以随时关闭学霸模式，或在系统无障碍设置里停用服务。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('稍后'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('去开启'),
+          ),
+        ],
+      ),
+    );
+    if (go == true) await service.openAccessibilitySettings();
+  }
+
   @override
   Widget build(BuildContext context) {
     final settingsController = context.watch<SettingsController>();
@@ -29,7 +59,7 @@ class SettingsPage extends StatelessWidget {
     return SafeArea(
       bottom: false,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 110),
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1200),
@@ -40,8 +70,8 @@ class SettingsPage extends StatelessWidget {
                   children: [
                     PageHeader(
                       eyebrow: '我的',
-                      title: '好好生活，慢慢专注',
-                      subtitle: '调成适合自己的节奏，比跑得更快更重要。',
+                      title: '和落落一起，慢慢专注',
+                      subtitle: '调成适合自己的节奏，落落会一直在旁边。',
                     ),
                     const SizedBox(height: 20),
                     _ProfileCard(
@@ -212,9 +242,12 @@ class SettingsPage extends StatelessWidget {
                           _SwitchRow(
                             icon: Icons.shield_moon_outlined,
                             title: '学霸模式',
-                            subtitle: '全屏固定，禁止暂停与最小化（Android 屏幕固定）',
+                            subtitle: '切换 App 时全屏提醒，计时结束自动回来（Android 无障碍守护）',
                             value: settings.strictMode,
-                            onChanged: settingsController.setStrictMode,
+                            onChanged: (value) async {
+                              settingsController.setStrictMode(value);
+                              if (value) await _ensureStrictGuard(context);
+                            },
                           ),
                           _RowDivider(),
                           _SwitchRow(
@@ -252,6 +285,30 @@ class SettingsPage extends StatelessWidget {
                                     settingsController.setThemeMode(mode),
                               ),
                             ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SoftCard(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      radius: 24,
+                      child: Column(
+                        children: [
+                          _SwitchRow(
+                            icon: Icons.blur_on_rounded,
+                            title: '毛玻璃效果',
+                            subtitle: '更通透，但低端设备可能掉帧；关闭更流畅',
+                            value: settings.glassEffects,
+                            onChanged: settingsController.setGlassEffects,
+                          ),
+                          _RowDivider(),
+                          _SwitchRow(
+                            icon: Icons.pets_rounded,
+                            title: '落落看板娘',
+                            subtitle: '让猫娘落落陪你一起专注',
+                            value: settings.companionEnabled,
+                            onChanged: settingsController.setCompanionEnabled,
+                          ),
                         ],
                       ),
                     ),
@@ -400,11 +457,11 @@ class SettingsPage extends StatelessWidget {
                             icon: Icons.info_outline_rounded,
                             title: '版本',
                             subtitle: '落·番茄',
-                            value: '1.4.0',
+                            value: '1.5.0',
                             onTap: () => showLicensePage(
                               context: context,
                               applicationName: '落·番茄',
-                              applicationVersion: '1.4.0',
+                              applicationVersion: '1.5.0',
                               applicationLegalese: '把时间种成番茄。',
                             ),
                           ),
@@ -782,9 +839,13 @@ class _SettingRow extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(
                     subtitle,
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 10.5, color: surfaces.faint),
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      height: 1.45,
+                      color: surfaces.faint,
+                    ),
                   ),
                 ],
               ),

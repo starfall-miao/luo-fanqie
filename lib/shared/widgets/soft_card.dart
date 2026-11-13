@@ -2,7 +2,10 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 
+import 'package:provider/provider.dart';
+
 import '../../core/theme/app_theme.dart';
+import '../../features/settings/providers/settings_controller.dart';
 
 class SoftCard extends StatelessWidget {
   const SoftCard({
@@ -14,6 +17,7 @@ class SoftCard extends StatelessWidget {
     this.gradient,
     this.border,
     this.onTap,
+    this.onLongPress,
     this.shadow = true,
   });
 
@@ -24,18 +28,25 @@ class SoftCard extends StatelessWidget {
   final Gradient? gradient;
   final BoxBorder? border;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
   final bool shadow;
 
   @override
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
+    final glass = context.select<SettingsController, bool>(
+      (controller) => controller.settings.glassEffects,
+    );
     final borderRadius = BorderRadius.circular(radius);
     final baseColor = color ?? surfaces.card;
-    final glassColor = baseColor.withValues(
-      alpha: context.isDark ? 0.78 : 0.82,
-    );
+    final cardColor = glass
+        ? baseColor.withValues(alpha: context.isDark ? 0.78 : 0.82)
+        : Color.alphaBlend(
+            baseColor.withValues(alpha: context.isDark ? 0.92 : 0.9),
+            surfaces.canvasTop,
+          );
     final decoration = BoxDecoration(
-      color: gradient == null ? glassColor : null,
+      color: gradient == null ? cardColor : null,
       gradient: gradient,
       borderRadius: borderRadius,
       border:
@@ -51,19 +62,26 @@ class SoftCard extends StatelessWidget {
           : null,
     );
     final content = Padding(padding: padding, child: child);
-    return DecoratedBox(
-      decoration: decoration,
-      child: ClipRRect(
-        borderRadius: borderRadius,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-          child: Material(
-            type: MaterialType.transparency,
-            child: onTap == null
-                ? content
-                : InkWell(onTap: onTap, child: content),
-          ),
-        ),
+    Widget surface = Material(
+      type: MaterialType.transparency,
+      child: onTap == null && onLongPress == null
+          ? content
+          : InkWell(
+              onTap: onTap,
+              onLongPress: onLongPress,
+              child: content,
+            ),
+    );
+    if (glass) {
+      surface = BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: surface,
+      );
+    }
+    return RepaintBoundary(
+      child: DecoratedBox(
+        decoration: decoration,
+        child: ClipRRect(borderRadius: borderRadius, child: surface),
       ),
     );
   }

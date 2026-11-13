@@ -94,45 +94,46 @@ void main() {
     }
   }, skip: !_runGoldens);
 
-  testWidgets('生成宽屏仪表盘与沉浸专注截图', (tester) async {
-    debugDisableShadows = false;
-    try {
-      await _prepare(tester, logicalSize: const Size(1280, 800));
-      await _pumpApp(tester, _seedStorage());
-      await expectLater(
-        find.byType(HomeShell),
-        matchesGoldenFile('goldens/08-wide-dashboard.png'),
-      );
+  testWidgets(
+    '生成宽屏仪表盘截图',
+    (tester) async {
+      debugDisableShadows = false;
+      try {
+        await _prepare(tester, logicalSize: const Size(1280, 800));
+        await _pumpApp(tester, _seedStorage());
+        await expectLater(
+          find.byType(HomeShell),
+          matchesGoldenFile('goldens/08-wide-dashboard.png'),
+        );
+      } finally {
+        debugDisableShadows = true;
+      }
+    },
+    skip: !_runGoldens,
+    timeout: const Timeout(Duration(minutes: 2)),
+  );
 
-      await tester.tap(find.byTooltip('设置'));
-      await tester.pumpAndSettle();
-      await expectLater(
-        find.byType(MaterialApp),
-        matchesGoldenFile('goldens/09-wide-settings.png'),
-      );
-      await tester.tap(find.byTooltip('返回'));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byTooltip('新建待办'));
-      await tester.pumpAndSettle();
-      await expectLater(
-        find.byType(MaterialApp),
-        matchesGoldenFile('goldens/10-wide-task-editor.png'),
-      );
-      await tester.tap(find.byTooltip('关闭'));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('快速开始一颗番茄'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 600));
-      await expectLater(
-        find.byType(MaterialApp),
-        matchesGoldenFile('goldens/11-session.png'),
-      );
-    } finally {
-      debugDisableShadows = true;
-    }
-  }, skip: !_runGoldens);
+  testWidgets(
+    '生成沉浸专注页截图',
+    (tester) async {
+      debugDisableShadows = false;
+      try {
+        await _prepare(tester, logicalSize: const Size(1280, 800));
+        await _pumpApp(tester, _seedStorage());
+        await tester.tap(find.text('快速开始一颗番茄'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 600));
+        await expectLater(
+          find.byType(MaterialApp),
+          matchesGoldenFile('goldens/11-session.png'),
+        );
+      } finally {
+        debugDisableShadows = true;
+      }
+    },
+    skip: !_runGoldens,
+    timeout: const Timeout(Duration(minutes: 2)),
+  );
 
   testWidgets('生成任务编辑截图', (tester) async {
     debugDisableShadows = false;

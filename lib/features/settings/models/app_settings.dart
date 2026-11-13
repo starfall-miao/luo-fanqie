@@ -17,6 +17,8 @@ class AppSettings {
     this.notificationsEnabled = true,
     this.strictMode = false,
     this.themeMode = AppThemeMode.system,
+    this.glassEffects = false,
+    this.companionEnabled = true,
   });
 
   final int focusMinutes;
@@ -31,6 +33,12 @@ class AppSettings {
   final bool notificationsEnabled;
   final bool strictMode;
   final AppThemeMode themeMode;
+
+  /// 毛玻璃需要实时采样背景，低端设备容易掉帧；默认关闭。
+  final bool glassEffects;
+
+  /// 是否显示落落看板娘。
+  final bool companionEnabled;
 
   static const defaults = AppSettings();
 
@@ -78,6 +86,8 @@ class AppSettings {
       hapticsEnabled: json['hapticsEnabled'] as bool? ?? true,
       notificationsEnabled: json['notificationsEnabled'] as bool? ?? true,
       strictMode: json['strictMode'] as bool? ?? false,
+      glassEffects: json['glassEffects'] as bool? ?? false,
+      companionEnabled: json['companionEnabled'] as bool? ?? true,
       themeMode: AppThemeMode.values.firstWhere(
         (mode) => mode.name == json['themeMode'],
         orElse: () => AppThemeMode.system,
@@ -112,6 +122,8 @@ class AppSettings {
     'hapticsEnabled': hapticsEnabled,
     'notificationsEnabled': notificationsEnabled,
     'strictMode': strictMode,
+    'glassEffects': glassEffects,
+    'companionEnabled': companionEnabled,
     'themeMode': themeMode.name,
   };
 
@@ -127,6 +139,8 @@ class AppSettings {
     bool? hapticsEnabled,
     bool? notificationsEnabled,
     bool? strictMode,
+    bool? glassEffects,
+    bool? companionEnabled,
     AppThemeMode? themeMode,
   }) {
     return AppSettings(
@@ -141,6 +155,8 @@ class AppSettings {
       hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       strictMode: strictMode ?? this.strictMode,
+      glassEffects: glassEffects ?? this.glassEffects,
+      companionEnabled: companionEnabled ?? this.companionEnabled,
       themeMode: themeMode ?? this.themeMode,
     );
   }

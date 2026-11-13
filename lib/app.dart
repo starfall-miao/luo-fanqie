@@ -43,4 +43,14 @@ class _AppScrollBehavior extends MaterialScrollBehavior {
     PointerDeviceKind.trackpad,
     PointerDeviceKind.stylus,
   };
+
+  /// 关闭 Android 的拉伸/发光越界反馈，避免滑动时页面突然“亮一下”。
+  @override
+  Widget buildOverscrollIndicator(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) {
+    return child;
+  }
 }

@@ -24,6 +24,85 @@ class TasksPage extends StatefulWidget {
 
 class _TasksPageState extends State<TasksPage> {
   _TaskFilter _filter = _TaskFilter.all;
+  bool _selectionMode = false;
+  final Set<String> _selectedIds = <String>{};
+
+  void _exitSelection() {
+    setState(() {
+      _selectionMode = false;
+      _selectedIds.clear();
+    });
+  }
+
+  void _enterSelection(String id) {
+    HapticFeedback.mediumImpact();
+    setState(() {
+      _selectionMode = true;
+      _selectedIds.add(id);
+    });
+  }
+
+  void _toggleSelected(String id) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      if (!_selectedIds.add(id)) _selectedIds.remove(id);
+      if (_selectedIds.isEmpty) _selectionMode = false;
+    });
+  }
+
+  void _selectAll(List<Task> visible) {
+    setState(() {
+      _selectedIds.addAll(visible.map((task) => task.id));
+    });
+  }
+
+  void _completeSelected(TaskController controller) {
+    for (final id in _selectedIds) {
+      final task = controller.taskById(id);
+      if (task != null && !task.done) controller.toggleDone(id);
+    }
+    HapticFeedback.mediumImpact();
+    final count = _selectedIds.length;
+    _exitSelection();
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text('已收下 $count 颗待办')));
+  }
+
+  Future<void> _deleteSelected(TaskController controller) async {
+    final count = _selectedIds.length;
+    final confirmed = await showConfirmDialog(
+      context,
+      title: '删除选中的待办？',
+      message: '将移除 $count 个待办，可用下方的撤销恢复。',
+      confirmText: '删除',
+      destructive: true,
+    );
+    if (!confirmed || !mounted) return;
+    final removed = <Task>[];
+    for (final id in _selectedIds.toList()) {
+      final task = controller.remove(id);
+      if (task != null) removed.add(task);
+    }
+    _exitSelection();
+    if (removed.isEmpty) return;
+    HapticFeedback.mediumImpact();
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('已移除 ${removed.length} 个待办'),
+          action: SnackBarAction(
+            label: '撤销',
+            onPressed: () {
+              for (final task in removed.reversed) {
+                controller.insert(task);
+              }
+            },
+          ),
+        ),
+      );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +120,7 @@ class _TasksPageState extends State<TasksPage> {
     return SafeArea(
       bottom: false,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 110),
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1200),
@@ -51,15 +130,46 @@ class _TasksPageState extends State<TasksPage> {
                 PageHeader(
                   eyebrow: '番茄田',
                   title: '一棵一棵，慢慢长大',
-                  subtitle: '把想做的事拆小一点，然后认真完成它。',
-                  trailing: CircleIconButton(
-                    icon: Icons.add_rounded,
-                    tooltip: '新建任务',
-                    size: 48,
-                    filled: true,
-                    onPressed: () => showTaskEditor(context),
+                  subtitle: '把想做的事拆小一点，落落陪你一颗一颗种下去。',
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (tasks.isNotEmpty)
+                        CircleIconButton(
+                          icon: _selectionMode
+                              ? Icons.close_rounded
+                              : Icons.checklist_rounded,
+                          tooltip: _selectionMode ? '退出多选' : '多选',
+                          size: 42,
+                          onPressed: _selectionMode
+                              ? _exitSelection
+                              : () => setState(() {
+                                  _selectionMode = true;
+                                  _selectedIds.clear();
+                                }),
+                        ),
+                      const SizedBox(width: 8),
+                      CircleIconButton(
+                        icon: Icons.add_rounded,
+                        tooltip: '新建任务',
+                        size: 48,
+                        filled: true,
+                        onPressed: () => showTaskEditor(context),
+                      ),
+                    ],
                   ),
                 ),
+                if (_selectionMode) ...[
+                  const SizedBox(height: 14),
+                  _SelectionBar(
+                    selectedCount: _selectedIds.length,
+                    totalCount: visible.length,
+                    onSelectAll: () => _selectAll(visible),
+                    onComplete: () => _completeSelected(controller),
+                    onDelete: () => _deleteSelected(controller),
+                    onCancel: _exitSelection,
+                  ),
+                ],
                 const SizedBox(height: 20),
                 _SummaryCard(controller: controller),
                 const SizedBox(height: 18),
@@ -89,7 +199,7 @@ class _TasksPageState extends State<TasksPage> {
                     ),
                     const Spacer(),
                     Text(
-                      '优先级排序',
+                      '长按多选',
                       style: TextStyle(
                         fontSize: 10.5,
                         color: context.surfaces.faint,
@@ -116,9 +226,19 @@ class _TasksPageState extends State<TasksPage> {
                               child: _TaskTile(
                                 task: task,
                                 selected: task.id == selectedTaskId,
-                                onTap: () =>
-                                    showTaskEditor(context, task: task),
-                                onStart: widget.onStartFocus == null
+                                selectionMode: _selectionMode,
+                                selectedForSelection: _selectedIds.contains(
+                                  task.id,
+                                ),
+                                onTap: _selectionMode
+                                    ? () => _toggleSelected(task.id)
+                                    : () => showTaskEditor(context, task: task),
+                                onLongPress: () => _enterSelection(task.id),
+                                onToggleSelection: () =>
+                                    _toggleSelected(task.id),
+                                onStart:
+                                    widget.onStartFocus == null ||
+                                        _selectionMode
                                     ? null
                                     : () => widget.onStartFocus!(task),
                               ),
@@ -132,9 +252,19 @@ class _TasksPageState extends State<TasksPage> {
                           _TaskTile(
                             task: visible[i],
                             selected: visible[i].id == selectedTaskId,
-                            onTap: () =>
-                                showTaskEditor(context, task: visible[i]),
-                            onStart: widget.onStartFocus == null
+                            selectionMode: _selectionMode,
+                            selectedForSelection: _selectedIds.contains(
+                              visible[i].id,
+                            ),
+                            onTap: _selectionMode
+                                ? () => _toggleSelected(visible[i].id)
+                                : () =>
+                                      showTaskEditor(context, task: visible[i]),
+                            onLongPress: () => _enterSelection(visible[i].id),
+                            onToggleSelection: () =>
+                                _toggleSelected(visible[i].id),
+                            onStart:
+                                widget.onStartFocus == null || _selectionMode
                                 ? null
                                 : () => widget.onStartFocus!(visible[i]),
                           ),
@@ -151,7 +281,7 @@ class _TasksPageState extends State<TasksPage> {
                     child: Text(
                       visible.every((task) => task.done)
                           ? '今天的番茄都收好啦，明天见。'
-                          : '一次只做一件事，就已经很好。',
+                          : '一次只做一件事，落落觉得你已经很棒啦。',
                       style: TextStyle(
                         fontSize: 11,
                         letterSpacing: 0.4,
@@ -303,13 +433,21 @@ class _TaskTile extends StatelessWidget {
   const _TaskTile({
     required this.task,
     required this.selected,
+    required this.selectionMode,
+    required this.selectedForSelection,
     required this.onTap,
+    required this.onLongPress,
+    required this.onToggleSelection,
     this.onStart,
   });
 
   final Task task;
   final bool selected;
+  final bool selectionMode;
+  final bool selectedForSelection;
   final VoidCallback onTap;
+  final VoidCallback onLongPress;
+  final VoidCallback onToggleSelection;
   final VoidCallback? onStart;
 
   Color _priorityColor(BuildContext context) => switch (task.priority) {
@@ -323,223 +461,302 @@ class _TaskTile extends StatelessWidget {
     context.read<TaskController>().toggleDone(task.id);
   }
 
-  void _remove(BuildContext context) {
-    final controller = context.read<TaskController>();
-    final messenger = ScaffoldMessenger.of(context);
-    final removed = controller.remove(task.id);
-    if (removed == null) return;
-    HapticFeedback.mediumImpact();
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text('已拔掉「${removed.title}」'),
-        action: SnackBarAction(
-          label: '撤销',
-          onPressed: () => controller.insert(removed),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
     final scheme = Theme.of(context).colorScheme;
     final overdue = task.isOverdue();
-    return Dismissible(
-      key: ValueKey<String>(task.id),
-      direction: DismissDirection.endToStart,
-      onDismissed: (_) => _remove(context),
-      background: Container(
-        margin: const EdgeInsets.only(bottom: 0),
-        padding: const EdgeInsets.only(right: 22),
-        alignment: Alignment.centerRight,
-        decoration: BoxDecoration(
-          color: scheme.error.withValues(alpha: 0.13),
-          borderRadius: BorderRadius.circular(22),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 220),
+      opacity: task.done ? 0.72 : 1,
+      child: SoftCard(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        radius: 22,
+        onTap: onTap,
+        onLongPress: onLongPress,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.delete_outline_rounded, color: scheme.error, size: 22),
-            const SizedBox(height: 3),
-            Text(
-              '删除',
-              style: TextStyle(
-                color: scheme.error,
-                fontSize: 10.5,
-                fontWeight: FontWeight.w600,
+            Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: selectionMode
+                  ? _SelectionMark(
+                      selected: selectedForSelection,
+                      onTap: onToggleSelection,
+                    )
+                  : task.isHabit
+                  ? _HabitMark(done: task.progressRatio(DateTime.now()) >= 1)
+                  : _TaskCheckbox(
+                      done: task.done,
+                      priorityColor: _priorityColor(context),
+                      onTap: () => _toggleDone(context),
+                    ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          task.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 14.5,
+                            height: 1.4,
+                            fontWeight: FontWeight.w600,
+                            color: task.done
+                                ? surfaces.muted
+                                : context.onSurface,
+                            decoration: task.done
+                                ? TextDecoration.lineThrough
+                                : null,
+                            decorationColor: surfaces.faint,
+                          ),
+                        ),
+                      ),
+                      if (selected) ...[
+                        const SizedBox(width: 6),
+                        Tooltip(
+                          message: '当前专注任务',
+                          child: Icon(
+                            Icons.timer_rounded,
+                            size: 15,
+                            color: scheme.primary,
+                          ),
+                        ),
+                      ],
+                      if (task.priority == TaskPriority.high && !task.done) ...[
+                        const SizedBox(width: 6),
+                        Tooltip(
+                          message: '高优先级',
+                          child: Icon(
+                            Icons.flag_rounded,
+                            size: 14,
+                            color: _priorityColor(context),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  if (task.notes.trim().isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      task.notes.trim(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        height: 1.4,
+                        color: surfaces.muted,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      _TypeBadge(kind: task.kind),
+                      if (task.tag.trim().isNotEmpty)
+                        TagChip(label: task.tag, small: true),
+                      if (overdue)
+                        _MetaBadge(
+                          label: '逾期',
+                          icon: Icons.error_outline_rounded,
+                          color: scheme.error,
+                        )
+                      else if (task.dueDate != null)
+                        _MetaBadge(
+                          label: dueDateLabel(task.dueDate!),
+                          icon: Icons.event_rounded,
+                          color: isToday(task.dueDate!)
+                              ? scheme.primary
+                              : surfaces.muted,
+                        ),
+                      _MetaBadge(
+                        label: '${task.focusMinutes} 分钟/次',
+                        icon: Icons.timer_outlined,
+                        color: surfaces.muted,
+                      ),
+                    ],
+                  ),
+                  if (task.hasTarget) ...[
+                    const SizedBox(height: 9),
+                    Row(
+                      children: [
+                        Text(
+                          task.isHabit
+                              ? '${task.scheduleLabel()} · ${task.periodLabel(DateTime.now())}'
+                              : '目标进度',
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            color: surfaces.faint,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          task.progressLabel(DateTime.now()),
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w600,
+                            color: task.progressRatio(DateTime.now()) >= 1
+                                ? AppPalette.sage
+                                : surfaces.muted,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    SoftProgressBar(
+                      value: task.progressRatio(DateTime.now()),
+                      height: 5,
+                      color: task.progressRatio(DateTime.now()) >= 1
+                          ? AppPalette.sage
+                          : null,
+                    ),
+                  ] else ...[
+                    const SizedBox(height: 7),
+                    Text(
+                      task.completedPomodoros == 0
+                          ? '还没有开始'
+                          : '已收获 ${task.completedPomodoros} 颗番茄',
+                      style: TextStyle(fontSize: 10.5, color: surfaces.faint),
+                    ),
+                  ],
+                ],
               ),
             ),
+            if (!task.done && onStart != null && !selectionMode) ...[
+              const SizedBox(width: 8),
+              _StartFocusButton(onTap: onStart!),
+            ],
           ],
         ),
       ),
-      child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 220),
-        opacity: task.done ? 0.72 : 1,
-        child: SoftCard(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-          radius: 22,
-          onTap: onTap,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 1),
-                child: task.isHabit
-                    ? _HabitMark(done: task.progressRatio(DateTime.now()) >= 1)
-                    : _TaskCheckbox(
-                        done: task.done,
-                        priorityColor: _priorityColor(context),
-                        onTap: () => _toggleDone(context),
-                      ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            task.title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 14.5,
-                              height: 1.4,
-                              fontWeight: FontWeight.w600,
-                              color: task.done
-                                  ? surfaces.muted
-                                  : context.onSurface,
-                              decoration: task.done
-                                  ? TextDecoration.lineThrough
-                                  : null,
-                              decorationColor: surfaces.faint,
-                            ),
-                          ),
-                        ),
-                        if (selected) ...[
-                          const SizedBox(width: 6),
-                          Tooltip(
-                            message: '当前专注任务',
-                            child: Icon(
-                              Icons.timer_rounded,
-                              size: 15,
-                              color: scheme.primary,
-                            ),
-                          ),
-                        ],
-                        if (task.priority == TaskPriority.high &&
-                            !task.done) ...[
-                          const SizedBox(width: 6),
-                          Tooltip(
-                            message: '高优先级',
-                            child: Icon(
-                              Icons.flag_rounded,
-                              size: 14,
-                              color: _priorityColor(context),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    if (task.notes.trim().isNotEmpty) ...[
-                      const SizedBox(height: 3),
-                      Text(
-                        task.notes.trim(),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          height: 1.4,
-                          color: surfaces.muted,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        _TypeBadge(kind: task.kind),
-                        if (task.tag.trim().isNotEmpty)
-                          TagChip(label: task.tag, small: true),
-                        if (overdue)
-                          _MetaBadge(
-                            label: '逾期',
-                            icon: Icons.error_outline_rounded,
-                            color: scheme.error,
-                          )
-                        else if (task.dueDate != null)
-                          _MetaBadge(
-                            label: dueDateLabel(task.dueDate!),
-                            icon: Icons.event_rounded,
-                            color: isToday(task.dueDate!)
-                                ? scheme.primary
-                                : surfaces.muted,
-                          ),
-                        _MetaBadge(
-                          label: '${task.focusMinutes} 分钟/次',
-                          icon: Icons.timer_outlined,
-                          color: surfaces.muted,
-                        ),
-                      ],
-                    ),
-                    if (task.hasTarget) ...[
-                      const SizedBox(height: 9),
-                      Row(
-                        children: [
-                          Text(
-                            task.isHabit
-                                ? '${task.scheduleLabel()} · ${task.periodLabel(DateTime.now())}'
-                                : '目标进度',
-                            style: TextStyle(
-                              fontSize: 10.5,
-                              color: surfaces.faint,
-                            ),
-                          ),
-                          const Spacer(),
-                          Text(
-                            task.progressLabel(DateTime.now()),
-                            style: TextStyle(
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w600,
-                              color: task.progressRatio(DateTime.now()) >= 1
-                                  ? AppPalette.sage
-                                  : surfaces.muted,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 5),
-                      SoftProgressBar(
-                        value: task.progressRatio(DateTime.now()),
-                        height: 5,
-                        color: task.progressRatio(DateTime.now()) >= 1
-                            ? AppPalette.sage
-                            : null,
-                      ),
-                    ] else ...[
-                      const SizedBox(height: 7),
-                      Text(
-                        task.completedPomodoros == 0
-                            ? '还没有开始'
-                            : '已收获 ${task.completedPomodoros} 颗番茄',
-                        style: TextStyle(fontSize: 10.5, color: surfaces.faint),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              if (!task.done && onStart != null) ...[
-                const SizedBox(width: 8),
-                _StartFocusButton(onTap: onStart!),
-              ],
-            ],
+    );
+  }
+}
+
+class _SelectionBar extends StatelessWidget {
+  const _SelectionBar({
+    required this.selectedCount,
+    required this.totalCount,
+    required this.onSelectAll,
+    required this.onComplete,
+    required this.onDelete,
+    required this.onCancel,
+  });
+
+  final int selectedCount;
+  final int totalCount;
+  final VoidCallback onSelectAll;
+  final VoidCallback onComplete;
+  final VoidCallback onDelete;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final surfaces = context.surfaces;
+    return SoftCard(
+      padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
+      radius: 18,
+      child: Row(
+        children: [
+          Icon(Icons.checklist_rounded, size: 18, color: scheme.primary),
+          const SizedBox(width: 7),
+          Text(
+            selectedCount == 0 ? '选择待办' : '已选 $selectedCount 个',
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: context.onSurface,
+            ),
+          ),
+          const Spacer(),
+          TextButton(
+            onPressed: selectedCount == totalCount && totalCount > 0
+                ? null
+                : onSelectAll,
+            style: TextButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+            ),
+            child: const Text('全选'),
+          ),
+          IconButton(
+            onPressed: selectedCount == 0 ? null : onComplete,
+            tooltip: '标记完成',
+            visualDensity: VisualDensity.compact,
+            icon: Icon(
+              Icons.check_circle_outline_rounded,
+              size: 19,
+              color: selectedCount == 0 ? surfaces.faint : AppPalette.sage,
+            ),
+          ),
+          IconButton(
+            onPressed: selectedCount == 0 ? null : onDelete,
+            tooltip: '删除选中',
+            visualDensity: VisualDensity.compact,
+            icon: Icon(
+              Icons.delete_outline_rounded,
+              size: 19,
+              color: selectedCount == 0 ? surfaces.faint : scheme.error,
+            ),
+          ),
+          IconButton(
+            onPressed: onCancel,
+            tooltip: '退出多选',
+            visualDensity: VisualDensity.compact,
+            icon: Icon(Icons.close_rounded, size: 19, color: surfaces.muted),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SelectionMark extends StatelessWidget {
+  const _SelectionMark({required this.selected, required this.onTap});
+
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Semantics(
+      checked: selected,
+      button: true,
+      label: selected ? '取消选择' : '选择待办',
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          width: 25,
+          height: 25,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: selected
+                ? scheme.primary
+                : scheme.primary.withValues(alpha: 0.06),
+            border: Border.all(
+              color: selected
+                  ? scheme.primary
+                  : scheme.primary.withValues(alpha: 0.45),
+              width: 1.5,
+            ),
+          ),
+          child: AnimatedScale(
+            duration: const Duration(milliseconds: 160),
+            scale: selected ? 1 : 0,
+            child: Icon(Icons.check_rounded, size: 15, color: scheme.onPrimary),
           ),
         ),
       ),

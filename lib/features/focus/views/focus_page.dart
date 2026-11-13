@@ -9,6 +9,8 @@ import '../../../core/utils/date_utils.dart';
 import '../../../shared/widgets/common.dart';
 import '../../../shared/widgets/soft_card.dart';
 import '../../../shared/widgets/tomato_mark.dart';
+import '../../companion/luoluo_companion.dart';
+import '../../companion/luoluo_mascot.dart';
 import '../../settings/providers/settings_controller.dart';
 import '../../stats/providers/stats_controller.dart';
 import '../../tasks/models/task.dart';
@@ -75,26 +77,35 @@ class FocusPage extends StatelessWidget {
       goalMinutes: settings.dailyGoalMinutes,
       progress: goalProgress,
     );
-    final quote = Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(Icons.eco_rounded, size: 13, color: context.surfaces.faint),
-        const SizedBox(width: 5),
-        Text(
-          '慢一点，也是在往前走。',
-          style: TextStyle(
-            fontSize: 11.5,
-            letterSpacing: 0.4,
-            color: context.surfaces.faint,
-          ),
-        ),
-      ],
-    );
+    final quote = settings.companionEnabled
+        ? LuoLuoCompanion(
+            message: timer.isRunning
+                ? '落落把尾巴收好啦，陪你安静写完这一段。'
+                : '先深呼吸，落落陪你一起种下这一颗番茄吧。',
+            mascotSize: 64,
+            compact: true,
+            studying: timer.phase == PomodoroPhase.focus,
+          )
+        : Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.eco_rounded, size: 13, color: context.surfaces.faint),
+              const SizedBox(width: 5),
+              Text(
+                '慢一点也没关系，落落陪你一起走。',
+                style: TextStyle(
+                  fontSize: 11.5,
+                  letterSpacing: 0.4,
+                  color: context.surfaces.faint,
+                ),
+              ),
+            ],
+          );
 
     return SafeArea(
       bottom: false,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 110),
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1200),
@@ -352,9 +363,15 @@ class _BrandBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
+    final companionOn = context.select<SettingsController, bool>(
+      (controller) => controller.settings.companionEnabled,
+    );
     return Row(
       children: [
-        const TomatoMark(size: 38, withGlow: true),
+        if (companionOn)
+          const LuoLuoMascot(size: 44)
+        else
+          const TomatoMark(size: 38, withGlow: true),
         const SizedBox(width: 11),
         Expanded(
           child: Column(
@@ -367,7 +384,7 @@ class _BrandBar extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                '${greetingForHour(now.hour)}，把时间种成番茄',
+                '${greetingForHour(now.hour)}，落落陪你种番茄',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -636,7 +653,7 @@ class _FocusTaskCard extends StatelessWidget {
               children: [
                 Text(
                   task?.title ?? '选择要专注的任务',
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleMedium
                       ?.copyWith(fontSize: 14.5),

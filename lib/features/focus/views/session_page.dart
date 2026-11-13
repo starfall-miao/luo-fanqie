@@ -9,6 +9,8 @@ import '../../../core/immersive/immersive_mode_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/common.dart';
 import '../../../shared/widgets/tomato_mark.dart';
+import '../../companion/luoluo_companion.dart';
+import '../../companion/luoluo_mascot.dart';
 import '../../settings/providers/settings_controller.dart';
 import '../../soundscape/soundscape_controller.dart';
 import '../../stats/providers/stats_controller.dart';
@@ -19,12 +21,12 @@ import '../../timer/theme/phase_style.dart';
 import 'widgets/timer_dial.dart';
 
 const _quotes = <String>[
-  '没有过不去的坎，只有过不去的心情。',
-  '把注意力放回此刻，时间会给你答案。',
-  '你只管努力，剩下的交给时间。',
-  '慢慢来，比较快。',
-  '一颗番茄，也是一次对未来的投票。',
-  '此刻的安静，会长成你想要的样子。',
+  '落落把耳朵竖起来啦，一起把这一颗番茄吃完吧。',
+  '你写你的，我趴在旁边看书，不吵你。',
+  '累了就眨眨眼，落落去给你倒杯水。',
+  '慢慢来呀，落落会一直在这里陪着你。',
+  '这一颗番茄里，藏着我们小小的未来。',
+  '专注的时候，落落的尾巴也会安静下来。',
 ];
 
 Future<void> launchFocusSession(
@@ -87,7 +89,7 @@ class SessionPage extends StatefulWidget {
   State<SessionPage> createState() => _SessionPageState();
 }
 
-class _SessionPageState extends State<SessionPage> {
+class _SessionPageState extends State<SessionPage> with WidgetsBindingObserver {
   static const _immersive = ImmersiveModeService();
 
   PomodoroController? _timer;
@@ -97,11 +99,23 @@ class _SessionPageState extends State<SessionPage> {
   bool _completed = false;
   bool _finishing = false;
   bool _allowPop = false;
+  bool _guardEnabled = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _quote = _quotes[DateTime.now().millisecondsSinceEpoch % _quotes.length];
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        widget.strict &&
+        !_guardEnabled &&
+        !_completed) {
+      unawaited(_startImmersive());
+    }
   }
 
   @override
@@ -114,7 +128,26 @@ class _SessionPageState extends State<SessionPage> {
     _timer = timer;
     _lastCompletedInCycle = timer.completedInCycle;
     timer.addListener(_handleTimer);
-    unawaited(_immersive.enter(lockTask: widget.strict));
+    unawaited(_startImmersive());
+  }
+
+  Future<void> _startImmersive() async {
+    await _immersive.enter();
+    if (!widget.strict) return;
+    final timer = _timer;
+    final endAt = timer?.endAt;
+    if (timer == null || endAt == null || !timer.isRunning) return;
+    final started = await _immersive.startStrictGuard(
+      endAt: endAt,
+      title: timer.selectedTask?.title ?? timer.phase.label,
+    );
+    if (mounted) {
+      setState(() => _guardEnabled = started);
+    }
+  }
+
+  void _openAccessibilitySettings() {
+    unawaited(_immersive.openAccessibilitySettings());
   }
 
   void _handleTimer() {
@@ -123,7 +156,8 @@ class _SessionPageState extends State<SessionPage> {
     if (timer.completedInCycle > _lastCompletedInCycle) {
       _lastCompletedInCycle = timer.completedInCycle;
       setState(() => _completed = true);
-      unawaited(_immersive.leave());
+      // 自然结束时不立即清除原生守护：如果应用在后台，让守护到点自动回跳。
+      unawaited(_immersive.clearKeepScreenOn());
     }
   }
 
@@ -138,7 +172,7 @@ class _SessionPageState extends State<SessionPage> {
       context,
       title: emergency ? '结束学霸模式？' : '提前结束这次专注？',
       message: emergency
-          ? '本轮专注不会计入番茄记录，屏幕固定会解除。'
+          ? '本轮专注不会计入番茄记录，学霸守护会解除。'
           : '结束本轮不会计入番茄记录，休息时间可以从首页重新开始。',
       confirmText: '结束本轮',
       destructive: true,
@@ -147,6 +181,7 @@ class _SessionPageState extends State<SessionPage> {
     _finishing = true;
     _allowPop = true;
     _timer?.reset();
+    await _immersive.stopStrictGuard();
     await _immersive.leave();
     if (mounted) Navigator.of(context).pop();
   }
@@ -210,7 +245,7 @@ class _SessionPageState extends State<SessionPage> {
             _ToolRow(
               icon: Icons.shield_outlined,
               title: '学霸模式',
-              subtitle: widget.strict ? '已开启 · 系统屏幕固定中' : '未开启',
+              subtitle: widget.strict ? '已开启 · 切 App 时全屏守护' : '未开启',
             ),
             const SizedBox(height: 16),
             Row(
@@ -234,7 +269,7 @@ class _SessionPageState extends State<SessionPage> {
                       _finish(emergency: widget.strict);
                     },
                     icon: const Icon(Icons.stop_rounded),
-                    label: Text(widget.strict ? '结束锁机' : '结束本轮'),
+                    label: Text(widget.strict ? '结束守护' : '结束本轮'),
                   ),
                 ),
               ],
@@ -247,6 +282,7 @@ class _SessionPageState extends State<SessionPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.removeListener(_handleTimer);
     unawaited(_soundscape?.stop() ?? Future<void>.value());
     unawaited(_immersive.leave());
@@ -258,7 +294,11 @@ class _SessionPageState extends State<SessionPage> {
     final timer = context.watch<PomodoroController>();
     final task = timer.selectedTask;
     final strict = widget.strict;
+    final companionOn = context.select<SettingsController, bool>(
+      (controller) => controller.settings.companionEnabled,
+    );
     final canPop = !strict || _completed || _allowPop;
+    final guardMissing = strict && !_guardEnabled && _immersive.supported;
     return PopScope(
       canPop: canPop,
       child: Scaffold(
@@ -297,6 +337,53 @@ class _SessionPageState extends State<SessionPage> {
                             onSounds: _showSounds,
                           ),
                           const SizedBox(height: 20),
+                          if (guardMissing)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Container(
+                                padding: const EdgeInsets.fromLTRB(
+                                  12,
+                                  10,
+                                  8,
+                                  10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppPalette.apricot.withValues(
+                                    alpha: 0.14,
+                                  ),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.shield_outlined,
+                                      size: 16,
+                                      color: AppPalette.tomato,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Expanded(
+                                      child: Text(
+                                        '开启「学霸守护」后，切到其他 App 时落落会弹出全屏提醒。',
+                                        style: TextStyle(
+                                          fontSize: 10.5,
+                                          height: 1.45,
+                                        ),
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: _openAccessibilitySettings,
+                                      style: TextButton.styleFrom(
+                                        visualDensity: VisualDensity.compact,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                        ),
+                                      ),
+                                      child: const Text('去开启'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           if (wide)
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.center,
@@ -307,6 +394,8 @@ class _SessionPageState extends State<SessionPage> {
                                     quote: _quote,
                                     task: task,
                                     strict: strict,
+                                    showMascot: companionOn,
+                                    compact: false,
                                   ),
                                 ),
                                 Expanded(
@@ -329,6 +418,8 @@ class _SessionPageState extends State<SessionPage> {
                               quote: _quote,
                               task: task,
                               strict: strict,
+                              showMascot: companionOn,
+                              compact: true,
                             ),
                             const SizedBox(height: 10),
                             _SessionCenter(
@@ -494,11 +585,15 @@ class _SessionQuote extends StatelessWidget {
     required this.quote,
     required this.task,
     required this.strict,
+    required this.showMascot,
+    required this.compact,
   });
 
   final String quote;
   final Task? task;
   final bool strict;
+  final bool showMascot;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -509,15 +604,23 @@ class _SessionQuote extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            quote,
-            style: theme.textTheme.displaySmall?.copyWith(
-              fontSize: 26,
-              height: 1.5,
-              letterSpacing: 0.4,
-              color: context.onSurface,
+          if (showMascot)
+            LuoLuoCompanion(
+              message: quote,
+              mascotSize: compact ? 88 : 150,
+              compact: compact,
+              studying: true,
+            )
+          else
+            Text(
+              quote,
+              style: theme.textTheme.displaySmall?.copyWith(
+                fontSize: 26,
+                height: 1.5,
+                letterSpacing: 0.4,
+                color: context.onSurface,
+              ),
             ),
-          ),
           const SizedBox(height: 14),
           if (task != null)
             Container(
@@ -552,7 +655,7 @@ class _SessionQuote extends StatelessWidget {
           if (strict) ...[
             const SizedBox(height: 12),
             Text(
-              '已开启学霸模式：本轮结束前不能暂停或最小化，可使用系统手势退出屏幕固定。',
+              '已开启学霸模式：本轮结束前不能暂停或最小化。离开应用时落落会全屏提醒，可点「结束守护」退出。',
               style: TextStyle(
                 fontSize: 10.5,
                 height: 1.6,
@@ -594,9 +697,14 @@ class _SessionCenter extends StatelessWidget {
     if (completed) {
       return Column(
         children: [
-          const TomatoMark(size: 82, withGlow: true),
-          const SizedBox(height: 16),
-          Text('番茄落袋啦', style: Theme.of(context).textTheme.displaySmall),
+          if (context.select<SettingsController, bool>(
+            (controller) => controller.settings.companionEnabled,
+          ))
+            const LuoLuoMascot(size: 112, happy: true)
+          else
+            const TomatoMark(size: 82, withGlow: true),
+          const SizedBox(height: 10),
+          Text('番茄落袋啦，落落抱抱你！', style: Theme.of(context).textTheme.displaySmall),
           const SizedBox(height: 7),
           Text(
             '今天已经收获 ${stats.todaySessions} 颗番茄 · ${stats.todayMinutes} 分钟',
@@ -664,7 +772,7 @@ class _SessionCenter extends StatelessWidget {
               TextButton.icon(
                 onPressed: onFinish,
                 icon: const Icon(Icons.lock_open_rounded, size: 16),
-                label: const Text('结束锁机'),
+                label: const Text('结束守护'),
               ),
             ],
           ),

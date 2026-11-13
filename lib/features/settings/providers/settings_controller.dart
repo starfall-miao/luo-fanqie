@@ -65,6 +65,12 @@ class SettingsController extends ChangeNotifier {
   void setStrictMode(bool value) =>
       _apply(_settings.copyWith(strictMode: value));
 
+  void setGlassEffects(bool value) =>
+      _apply(_settings.copyWith(glassEffects: value));
+
+  void setCompanionEnabled(bool value) =>
+      _apply(_settings.copyWith(companionEnabled: value));
+
   void setThemeMode(AppThemeMode value) =>
       _apply(_settings.copyWith(themeMode: value));
 

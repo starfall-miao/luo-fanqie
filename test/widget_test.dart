@@ -83,7 +83,7 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.person_outline_rounded));
     await tester.pumpAndSettle();
-    expect(find.text('好好生活，慢慢专注'), findsOneWidget);
+    expect(find.text('和落落一起，慢慢专注'), findsOneWidget);
 
     await tester.ensureVisible(find.text('深色'));
     await tester.pumpAndSettle();
@@ -122,7 +122,7 @@ void main() {
       logicalSize: const Size(1280, 800),
       devicePixelRatio: 2,
     );
-    expect(find.textContaining('把时间种成番茄'), findsWidgets);
+    expect(find.textContaining('落落陪你种番茄'), findsWidgets);
     expect(find.text('快速开始一颗番茄'), findsOneWidget);
     expect(find.text('今日专注'), findsWidgets);
     expect(find.byIcon(Icons.checklist_rounded), findsNothing);
@@ -130,7 +130,7 @@ void main() {
 
     await tester.tap(find.byTooltip('设置'));
     await tester.pumpAndSettle();
-    expect(find.text('好好生活，慢慢专注'), findsOneWidget);
+    expect(find.text('和落落一起，慢慢专注'), findsOneWidget);
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
     expect(find.text('快速开始一颗番茄'), findsOneWidget);
@@ -220,7 +220,7 @@ void main() {
 
     await tester.tap(find.byTooltip('设置'));
     await tester.pumpAndSettle();
-    expect(find.text('好好生活，慢慢专注'), findsOneWidget);
+    expect(find.text('和落落一起，慢慢专注'), findsOneWidget);
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
     expect(find.text('快速开始一颗番茄'), findsOneWidget);
@@ -242,7 +242,7 @@ void main() {
     expect(find.text('学霸模式'), findsWidgets);
     expect(find.byIcon(Icons.pause_rounded), findsNothing);
     expect(find.byTooltip('最小化'), findsNothing);
-    expect(find.text('结束锁机'), findsWidgets);
+    expect(find.text('结束守护'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
@@ -278,7 +278,56 @@ void main() {
     expect(find.text('不会申请的权限'), findsOneWidget);
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
-    expect(find.text('好好生活，慢慢专注'), findsOneWidget);
+    expect(find.text('和落落一起，慢慢专注'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('待办支持多选而不是误删', (tester) async {
+    await _pumpApp(tester);
+    await tester.tap(find.byIcon(Icons.checklist_rounded));
+    await tester.pumpAndSettle();
+
+    await tester.longPress(find.text('完成落·番茄的首页设计'));
+    await tester.pumpAndSettle();
+    expect(find.text('已选 1 个'), findsOneWidget);
+
+    await tester.tap(find.text('全选'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('已选 '), findsOneWidget);
+
+    await tester.tap(find.byTooltip('退出多选').first);
+    await tester.pumpAndSettle();
+    expect(find.text('完成落·番茄的首页设计'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('横屏可以打开完整统计', (tester) async {
+    await _pumpApp(
+      tester,
+      logicalSize: const Size(1280, 800),
+      devicePixelRatio: 2,
+    );
+    await tester.tap(find.text('完整统计'));
+    await tester.pumpAndSettle();
+    expect(find.text('时间留下的形状'), findsOneWidget);
+    await tester.tap(find.byTooltip('返回').first);
+    await tester.pumpAndSettle();
+    expect(find.text('完整统计'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('放大字体后主要页面仍不溢出', (tester) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 1.2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await _pumpApp(tester);
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.byIcon(Icons.checklist_rounded));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.byIcon(Icons.person_outline_rounded));
+    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
 }

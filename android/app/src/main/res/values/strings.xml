@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_service_description">落·番茄的「学霸守护」：仅在开启学霸模式期间读取当前前台应用包名，用全屏提醒帮你回到专注；不读取任何屏幕文字、密码或聊天内容。可随时在系统无障碍设置中关闭。</string>
+</resources>

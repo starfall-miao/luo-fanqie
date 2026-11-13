@@ -1,9 +1,10 @@
 package dev.luofanqie.luo_fanqie_app
 
 import android.Manifest
-import android.app.ActivityManager
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.provider.Settings
 import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -55,32 +56,39 @@ class MainActivity : FlutterActivity() {
             IMMERSIVE_CHANNEL,
         ).setMethodCallHandler { call, result ->
             when (call.method) {
-                "startLockTask" -> {
+                "isStrictGuardEnabled" -> {
+                    result.success(
+                        StrictGuardAccessibilityService.isEnabled(this),
+                    )
+                }
+
+                "openAccessibilitySettings" -> {
                     try {
-                        val activityManager = getSystemService(ActivityManager::class.java)
-                        if (activityManager?.lockTaskModeState ==
-                            ActivityManager.LOCK_TASK_MODE_NONE
-                        ) {
-                            startLockTask()
-                        }
+                        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
                         result.success(null)
                     } catch (error: Exception) {
-                        result.error("lock_task_failed", error.message, null)
+                        result.error("accessibility_settings_failed", error.message, null)
                     }
                 }
 
-                "stopLockTask" -> {
-                    try {
-                        val activityManager = getSystemService(ActivityManager::class.java)
-                        if (activityManager?.lockTaskModeState !=
-                            ActivityManager.LOCK_TASK_MODE_NONE
-                        ) {
-                            stopLockTask()
-                        }
-                        result.success(null)
-                    } catch (error: Exception) {
-                        result.error("unlock_task_failed", error.message, null)
+                "startStrictGuard" -> {
+                    val endAtMillis = call.argument<Number>("endAtMillis")?.toLong()
+                    val title = call.argument<String>("title").orEmpty()
+                    if (endAtMillis == null || endAtMillis <= System.currentTimeMillis()) {
+                        result.error("invalid_arguments", "endAtMillis is required", null)
+                    } else {
+                        val started = StrictGuardAccessibilityService.startGuard(
+                            this,
+                            endAtMillis,
+                            title,
+                        )
+                        result.success(started)
                     }
+                }
+
+                "stopStrictGuard" -> {
+                    StrictGuardAccessibilityService.stopGuard(this)
+                    result.success(null)
                 }
 
                 "keepScreenOn" -> {

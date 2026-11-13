@@ -11,6 +11,7 @@ import '../../../shared/widgets/tomato_mark.dart';
 import '../../focus/views/focus_page.dart';
 import '../../focus/views/session_page.dart';
 import 'landscape_dashboard.dart';
+import '../../settings/providers/settings_controller.dart';
 import '../../settings/views/settings_page.dart';
 import '../../stats/views/stats_page.dart';
 import '../../sync/providers/sync_controller.dart';
@@ -119,14 +120,37 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     await launchFocusSession(context, task: task, resetPaused: true);
   }
 
+  Widget _navRow() {
+    return Row(
+      children: [
+        for (var i = 0; i < _destinations.length; i += 1)
+          Expanded(
+            child: _NavItem(
+              destination: _destinations[i],
+              selected: i == _index,
+              onTap: () => _goTo(i),
+            ),
+          ),
+      ],
+    );
+  }
+
   void _openSettings() {
     Navigator.of(context)
         .push(MaterialPageRoute<void>(builder: (_) => const _SettingsScreen()));
   }
 
+  void _openStats() {
+    Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => const _StatsScreen()));
+  }
+
   @override
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
+    final glass = context.select<SettingsController, bool>(
+      (controller) => controller.settings.glassEffects,
+    );
     final pages = <Widget>[
       const FocusPage(),
       TasksPage(onStartFocus: (task) => _startFocusForTask(task)),
@@ -142,7 +166,10 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                 constraints.maxWidth >= 900 &&
                 constraints.maxWidth > constraints.maxHeight;
             if (landscape) {
-              return LandscapeDashboard(onOpenSettings: _openSettings);
+              return LandscapeDashboard(
+                onOpenSettings: _openSettings,
+                onOpenStats: _openStats,
+              );
             }
             return IndexedStack(index: _index, children: pages);
           },
@@ -160,42 +187,35 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                 heightFactor: 1,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 480),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                      child: Container(
-                        padding: const EdgeInsets.all(7),
-                        decoration: BoxDecoration(
-                          color: surfaces.nav.withValues(alpha: 0.86),
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(
-                            color: surfaces.border.withValues(alpha: 0.9),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(
-                                alpha: context.isDark ? 0.3 : 0.08,
-                              ),
-                              blurRadius: 30,
-                              offset: const Offset(0, 12),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            for (var i = 0; i < _destinations.length; i += 1)
-                              Expanded(
-                                child: _NavItem(
-                                  destination: _destinations[i],
-                                  selected: i == _index,
-                                  onTap: () => _goTo(i),
-                                ),
-                              ),
-                          ],
-                        ),
+                  child: Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: glass
+                          ? surfaces.nav.withValues(alpha: 0.86)
+                          : surfaces.nav,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: surfaces.border.withValues(alpha: 0.9),
                       ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(
+                            alpha: context.isDark ? 0.3 : 0.08,
+                          ),
+                          blurRadius: 30,
+                          offset: const Offset(0, 12),
+                        ),
+                      ],
                     ),
+                    child: glass
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                              child: _navRow(),
+                            ),
+                          )
+                        : _navRow(),
                   ),
                 ),
               ),
@@ -244,6 +264,51 @@ class _SettingsScreen extends StatelessWidget {
                 ),
               ),
               const Expanded(child: SettingsPage()),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatsScreen extends StatelessWidget {
+  const _StatsScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: AppBackground(
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 6, 16, 0),
+                child: Row(
+                  children: [
+                    CircleIconButton(
+                      icon: Icons.arrow_back_rounded,
+                      tooltip: '返回',
+                      size: 40,
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '完整统计',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: context.surfaces.muted,
+                      ),
+                    ),
+                    const Spacer(),
+                    const SizedBox(width: 40),
+                  ],
+                ),
+              ),
+              const Expanded(child: StatsPage()),
             ],
           ),
         ),
