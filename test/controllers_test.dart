@@ -199,6 +199,21 @@ void main() {
       expect(restored.settings.strictDnd, isTrue);
     });
 
+    test('自动锁机计划计算下一次时间并避免同日重复', () {
+      final storage = MemoryStorage();
+      final controller = SettingsController(storage);
+      controller.setAutoLockEnabled(true);
+      controller.setAutoLockTime(9, 0);
+      final today = DateTime(2026, 11, 8, 8, 30);
+      expect(controller.nextAutoLockTime(today), DateTime(2026, 11, 8, 9));
+      expect(
+        controller.nextAutoLockTime(DateTime(2026, 11, 8, 10)),
+        DateTime(2026, 11, 9, 9),
+      );
+      controller.markAutoLockStarted(today);
+      expect(controller.nextAutoLockTime(today), DateTime(2026, 11, 9, 9));
+    });
+
     test('损坏的设置数据回退默认值', () {
       final storage = MemoryStorage({'luo_fanqie.settings.v1': '{bad json'});
       final controller = SettingsController(storage);

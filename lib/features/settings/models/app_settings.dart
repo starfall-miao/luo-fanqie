@@ -25,6 +25,11 @@ class AppSettings {
     this.glassEffects = false,
     this.companionEnabled = true,
     this.whitelistPackages = const <String>[],
+    this.autoLockEnabled = false,
+    this.autoLockHour = 21,
+    this.autoLockMinute = 0,
+    this.autoLockMinutes = 45,
+    this.autoLockLastDate = '',
   });
 
   final int focusMinutes;
@@ -56,6 +61,14 @@ class AppSettings {
 
   /// 严格专注/锁机时允许打开的应用包名。为空表示不允许任何其他 App。
   final List<String> whitelistPackages;
+
+  /// 每日自动锁机计划。当前实现会在应用前台到点时自动开始；
+  /// 应用不在前台时仍需用户回到应用后触发。
+  final bool autoLockEnabled;
+  final int autoLockHour;
+  final int autoLockMinute;
+  final int autoLockMinutes;
+  final String autoLockLastDate;
 
   static const defaults = AppSettings();
 
@@ -155,6 +168,11 @@ class AppSettings {
     'glassEffects': glassEffects,
     'companionEnabled': companionEnabled,
     'whitelistPackages': whitelistPackages,
+    'autoLockEnabled': autoLockEnabled,
+    'autoLockHour': autoLockHour,
+    'autoLockMinute': autoLockMinute,
+    'autoLockMinutes': autoLockMinutes,
+    'autoLockLastDate': autoLockLastDate,
     'themeMode': themeMode.name,
   };
 
@@ -178,6 +196,11 @@ class AppSettings {
     bool? glassEffects,
     bool? companionEnabled,
     List<String>? whitelistPackages,
+    bool? autoLockEnabled,
+    int? autoLockHour,
+    int? autoLockMinute,
+    int? autoLockMinutes,
+    String? autoLockLastDate,
     AppThemeMode? themeMode,
   }) {
     return AppSettings(
@@ -200,6 +223,11 @@ class AppSettings {
       glassEffects: glassEffects ?? this.glassEffects,
       companionEnabled: companionEnabled ?? this.companionEnabled,
       whitelistPackages: whitelistPackages ?? this.whitelistPackages,
+      autoLockEnabled: autoLockEnabled ?? this.autoLockEnabled,
+      autoLockHour: autoLockHour ?? this.autoLockHour,
+      autoLockMinute: autoLockMinute ?? this.autoLockMinute,
+      autoLockMinutes: autoLockMinutes ?? this.autoLockMinutes,
+      autoLockLastDate: autoLockLastDate ?? this.autoLockLastDate,
       themeMode: themeMode ?? this.themeMode,
     );
   }

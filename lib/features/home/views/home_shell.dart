@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
@@ -37,6 +38,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   int _index = 0;
   PomodoroController? _timer;
   SyncController? _sync;
+  SettingsController? _settings;
+  Timer? _autoLockTimer;
 
   @override
   void initState() {
@@ -47,16 +50,26 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final settings = context.read<SettingsController>();
+    if (!identical(settings, _settings)) {
+      _settings?.removeListener(_onSettingsChanged);
+      _settings = settings;
+      settings.addListener(_onSettingsChanged);
+    }
     final timer = context.read<PomodoroController>();
-    if (identical(timer, _timer)) return;
-    _timer?.justCompleted.removeListener(_onFocusCompleted);
-    _timer = timer;
-    timer.justCompleted.addListener(_onFocusCompleted);
-    _sync = context.read<SyncController>();
+    if (!identical(timer, _timer)) {
+      _timer?.justCompleted.removeListener(_onFocusCompleted);
+      _timer = timer;
+      timer.justCompleted.addListener(_onFocusCompleted);
+      _sync = context.read<SyncController>();
+    }
+    _scheduleAutoLock();
   }
 
   @override
   void dispose() {
+    _autoLockTimer?.cancel();
+    _settings?.removeListener(_onSettingsChanged);
     _timer?.justCompleted.removeListener(_onFocusCompleted);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -67,7 +80,86 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       _timer?.syncTime();
       _sync?.syncOnResume();
+      _checkAutoLock();
     }
+  }
+
+  void _onSettingsChanged() {
+    _scheduleAutoLock();
+  }
+
+  String _dayKey(DateTime date) =>
+      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+  void _scheduleAutoLock() {
+    _autoLockTimer?.cancel();
+    final settings = _settings;
+    if (settings == null || !settings.settings.autoLockEnabled) return;
+    final next = settings.nextAutoLockTime();
+    if (next == null) return;
+    final delay = next.difference(DateTime.now());
+    _autoLockTimer = Timer(
+      delay.isNegative ? const Duration(seconds: 1) : delay,
+      _checkAutoLock,
+    );
+  }
+
+  void _checkAutoLock() {
+    final settingsController = _settings;
+    if (!mounted || settingsController == null) return;
+    final settings = settingsController.settings;
+    if (!settings.autoLockEnabled) return;
+    final now = DateTime.now();
+    if (settings.autoLockLastDate == _dayKey(now)) {
+      _scheduleAutoLock();
+      return;
+    }
+    final due = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      settings.autoLockHour,
+      settings.autoLockMinute,
+    );
+    if (now.isBefore(due)) {
+      _scheduleAutoLock();
+      return;
+    }
+    if (now.difference(due) > const Duration(minutes: 15)) {
+      settingsController.markAutoLockStarted(now);
+      _scheduleAutoLock();
+      return;
+    }
+    final timer = _timer;
+    if (timer == null || timer.isRunning || timer.isPaused) {
+      settingsController.markAutoLockStarted(now);
+      _scheduleAutoLock();
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('自动锁机时间到，但当前已有专注在进行')));
+      return;
+    }
+    if (!(ModalRoute.of(context)?.isCurrent ?? true)) {
+      // 设置页/沉浸页打开时不强行切换，下一分钟再检查。
+      _autoLockTimer = Timer(const Duration(minutes: 1), _checkAutoLock);
+      return;
+    }
+    settingsController.markAutoLockStarted(now);
+    HapticFeedback.mediumImpact();
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text('自动锁机开始 · ${settings.autoLockMinutes} 分钟')),
+      );
+    unawaited(
+      launchFocusSession(
+        context,
+        focusMinutes: settings.autoLockMinutes,
+        strictOverride: true,
+        resetPaused: true,
+      ),
+    );
+    _scheduleAutoLock();
   }
 
   void _onFocusCompleted() {

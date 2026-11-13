@@ -77,6 +77,61 @@ class SettingsPage extends StatelessWidget {
     if (go == true) await service.openDndAccessSettings();
   }
 
+  Future<void> _pickAutoLockTime(BuildContext context) async {
+    final settingsController = context.read<SettingsController>();
+    final current = settingsController.settings;
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(
+        hour: current.autoLockHour,
+        minute: current.autoLockMinute,
+      ),
+    );
+    if (picked == null) return;
+    settingsController.setAutoLockTime(picked.hour, picked.minute);
+  }
+
+  Future<void> _pickAutoLockDuration(BuildContext context) async {
+    final settingsController = context.read<SettingsController>();
+    final selected = await showModalBottomSheet<int>(
+      context: context,
+      constraints: const BoxConstraints(maxWidth: 560),
+      useSafeArea: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(22, 18, 22, 26),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '锁机时长',
+                style: Theme.of(sheetContext).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final minutes in [25, 45, 60, 90, 120])
+                    ChoiceChip(
+                      label: Text('$minutes 分钟'),
+                      selected:
+                          settingsController.settings.autoLockMinutes ==
+                          minutes,
+                      onSelected: (_) =>
+                          Navigator.of(sheetContext).pop(minutes),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (selected != null) settingsController.setAutoLockMinutes(selected);
+  }
+
   @override
   Widget build(BuildContext context) {
     final settingsController = context.watch<SettingsController>();
@@ -321,6 +376,33 @@ class SettingsPage extends StatelessWidget {
                               onTap: null,
                             ),
                             _RowDivider(),
+                            _SwitchRow(
+                              icon: Icons.schedule_rounded,
+                              title: '每日自动锁机',
+                              subtitle: '应用在前台到点自动开始；不在前台时需回来触发',
+                              value: settings.autoLockEnabled,
+                              onChanged: settingsController.setAutoLockEnabled,
+                            ),
+                            if (settings.autoLockEnabled) ...[
+                              _RowDivider(),
+                              _SettingRow(
+                                icon: Icons.alarm_rounded,
+                                title: '锁机时间',
+                                subtitle: '每天这个时间自动开始严格专注',
+                                value:
+                                    '${settings.autoLockHour.toString().padLeft(2, '0')}:${settings.autoLockMinute.toString().padLeft(2, '0')}',
+                                onTap: () => _pickAutoLockTime(context),
+                              ),
+                              _RowDivider(),
+                              _SettingRow(
+                                icon: Icons.timelapse_rounded,
+                                title: '锁机时长',
+                                subtitle: '自动锁机开始后持续的时间',
+                                value: '${settings.autoLockMinutes} 分钟',
+                                onTap: () => _pickAutoLockDuration(context),
+                              ),
+                            ],
+                            _RowDivider(),
                             _SettingRow(
                               icon: Icons.apps_rounded,
                               title: '应用白名单',
@@ -561,11 +643,11 @@ class SettingsPage extends StatelessWidget {
                             icon: Icons.info_outline_rounded,
                             title: '版本',
                             subtitle: '落·番茄',
-                            value: '1.7.0',
+                            value: '1.8.0',
                             onTap: () => showLicensePage(
                               context: context,
                               applicationName: '落·番茄',
-                              applicationVersion: '1.7.0',
+                              applicationVersion: '1.8.0',
                               applicationLegalese: '把时间种成番茄。',
                             ),
                           ),

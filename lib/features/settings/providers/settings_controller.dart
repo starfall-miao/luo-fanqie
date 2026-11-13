@@ -106,6 +106,42 @@ class SettingsController extends ChangeNotifier {
     _settings.copyWith(whitelistPackages: List.unmodifiable(packages)),
   );
 
+  void setAutoLockEnabled(bool value) =>
+      _apply(_settings.copyWith(autoLockEnabled: value));
+
+  void setAutoLockTime(int hour, int minute) => _apply(
+    _settings.copyWith(
+      autoLockHour: hour.clamp(0, 23),
+      autoLockMinute: minute.clamp(0, 59),
+    ),
+  );
+
+  void setAutoLockMinutes(int value) =>
+      _apply(_settings.copyWith(autoLockMinutes: value.clamp(5, 180)));
+
+  String _dayKey(DateTime date) =>
+      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+  DateTime? nextAutoLockTime([DateTime? now]) {
+    if (!_settings.autoLockEnabled) return null;
+    final current = now ?? DateTime.now();
+    var candidate = DateTime(
+      current.year,
+      current.month,
+      current.day,
+      _settings.autoLockHour,
+      _settings.autoLockMinute,
+    );
+    final alreadyStarted = _settings.autoLockLastDate == _dayKey(current);
+    if (alreadyStarted || !candidate.isAfter(current)) {
+      candidate = candidate.add(const Duration(days: 1));
+    }
+    return candidate;
+  }
+
+  void markAutoLockStarted(DateTime now) =>
+      _apply(_settings.copyWith(autoLockLastDate: _dayKey(now)));
+
   void setThemeMode(AppThemeMode value) =>
       _apply(_settings.copyWith(themeMode: value));
 
