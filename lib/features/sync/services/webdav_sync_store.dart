@@ -38,10 +38,34 @@ class WebDavSyncStore implements RemoteSyncStore {
 
   Uri _fileUri() => _folderUri().resolve(config.fileName);
 
+  /// 不跟随重定向，避免把 Basic Auth 带到用户未填写的另一台服务器。
+  Future<http.Response> _send(
+    String method,
+    Uri uri, {
+    Map<String, String>? extraHeaders,
+    List<int>? body,
+  }) async {
+    final request = http.Request(method, uri)
+      ..followRedirects = false
+      ..maxRedirects = 0
+      ..headers.addAll(_headers);
+    if (extraHeaders != null) request.headers.addAll(extraHeaders);
+    if (body != null) request.bodyBytes = body;
+    final streamed = await _http.send(request);
+    final response = await http.Response.fromStream(streamed);
+    if (response.statusCode >= 300 && response.statusCode < 400) {
+      throw SyncException(
+        '服务器返回了重定向。出于安全考虑，请直接在设置中填写最终同步地址。',
+        statusCode: response.statusCode,
+      );
+    }
+    return response;
+  }
+
   @override
   Future<String?> download() async {
     final uri = _fileUri();
-    final response = await _http.get(uri, headers: _headers);
+    final response = await _send('GET', uri);
     if (response.statusCode == 404) return null;
     _ensureSuccess(response, '读取 ${config.displayTarget}');
     return utf8.decode(response.bodyBytes, allowMalformed: true);
@@ -50,12 +74,10 @@ class WebDavSyncStore implements RemoteSyncStore {
   @override
   Future<void> upload(String content) async {
     final uri = _fileUri();
-    final response = await _http.put(
+    final response = await _send(
+      'PUT',
       uri,
-      headers: <String, String>{
-        ..._headers,
-        'Content-Type': 'application/json; charset=utf-8',
-      },
+      extraHeaders: const {'Content-Type': 'application/json; charset=utf-8'},
       body: utf8.encode(content),
     );
     _ensureSuccess(response, '写入 ${config.displayTarget}');
@@ -63,7 +85,7 @@ class WebDavSyncStore implements RemoteSyncStore {
 
   @override
   Future<void> test() async {
-    final response = await _http.get(_fileUri(), headers: _headers);
+    final response = await _send('GET', _fileUri());
     if (response.statusCode == 404 || response.statusCode == 200) {
       return;
     }
