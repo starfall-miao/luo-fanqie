@@ -102,6 +102,10 @@ class SettingsController extends ChangeNotifier {
   void setCompanionEnabled(bool value) =>
       _apply(_settings.copyWith(companionEnabled: value));
 
+  void setWhitelistPackages(List<String> packages) => _apply(
+    _settings.copyWith(whitelistPackages: List.unmodifiable(packages)),
+  );
+
   void setThemeMode(AppThemeMode value) =>
       _apply(_settings.copyWith(themeMode: value));
 

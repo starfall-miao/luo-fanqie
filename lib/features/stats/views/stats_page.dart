@@ -12,6 +12,7 @@ import '../../settings/providers/settings_controller.dart';
 import '../../stats/models/focus_session.dart';
 import '../../stats/models/interruption_event.dart';
 import '../../stats/providers/stats_controller.dart';
+import '../../stats/services/app_usage_service.dart';
 import 'widgets/focus_heatmap.dart';
 import 'widgets/weekly_chart.dart';
 
@@ -68,6 +69,7 @@ class _StatsPageState extends State<StatsPage> {
       range: _range,
       now: now,
     );
+    final appUsageCard = _AppUsageCard(range: _range, now: now);
     final hero = _TodayHero(
       minutes: stats.todayMinutes,
       sessions: stats.todaySessions,
@@ -168,6 +170,8 @@ class _StatsPageState extends State<StatsPage> {
                       recent,
                       const SizedBox(height: 14),
                       interruptionCard,
+                      const SizedBox(height: 14),
+                      appUsageCard,
                       const SizedBox(height: 18),
                       quote,
                     ],
@@ -212,6 +216,8 @@ class _StatsPageState extends State<StatsPage> {
                     ),
                     const SizedBox(height: 14),
                     interruptionCard,
+                    const SizedBox(height: 14),
+                    appUsageCard,
                     const SizedBox(height: 18),
                     quote,
                   ],
@@ -594,6 +600,203 @@ class _InterruptionCard extends StatelessWidget {
               ),
               const SizedBox(height: 10),
             ],
+        ],
+      ),
+    );
+  }
+}
+
+class _AppUsageCard extends StatefulWidget {
+  const _AppUsageCard({required this.range, required this.now});
+
+  final _StatsRange range;
+  final DateTime now;
+
+  @override
+  State<_AppUsageCard> createState() => _AppUsageCardState();
+}
+
+class _AppUsageCardState extends State<_AppUsageCard> {
+  static const _service = AppUsageService();
+  bool? _hasAccess;
+  Future<List<AppUsageEntry>>? _query;
+  bool _loadingAccess = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAccess();
+  }
+
+  @override
+  void didUpdateWidget(covariant _AppUsageCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.range != widget.range) {
+      _refreshQuery();
+    }
+  }
+
+  (DateTime, DateTime) get _bounds {
+    final startOfToday = startOfDay(widget.now);
+    return switch (widget.range) {
+      _StatsRange.day => (startOfToday, addDays(startOfToday, 1)),
+      _StatsRange.week => (
+        startOfWeek(widget.now),
+        addDays(startOfWeek(widget.now), 7),
+      ),
+      _StatsRange.month => (
+        DateTime(widget.now.year, widget.now.month, 1),
+        DateTime(widget.now.year, widget.now.month + 1, 1),
+      ),
+      _StatsRange.year => (
+        DateTime(widget.now.year, 1, 1),
+        DateTime(widget.now.year + 1, 1, 1),
+      ),
+    };
+  }
+
+  Future<void> _loadAccess() async {
+    final access = await _service.hasAccess();
+    if (!mounted) return;
+    setState(() {
+      _hasAccess = access;
+      _loadingAccess = false;
+    });
+    if (access) _refreshQuery();
+  }
+
+  void _refreshQuery() {
+    if (_hasAccess != true) return;
+    final (start, end) = _bounds;
+    setState(() {
+      _query = _service.query(start: start, end: end);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final surfaces = context.surfaces;
+    final scheme = Theme.of(context).colorScheme;
+    return SoftCard(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+      radius: 26,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionTitle(
+            title: '应用使用',
+            subtitle: _service.supported
+                ? 'Android 系统使用情况 · ${widget.range.label}'
+                : '仅 Android 支持',
+            trailing: _service.supported
+                ? IconButton(
+                    onPressed: _loadingAccess ? null : _loadAccess,
+                    tooltip: '刷新使用情况',
+                    visualDensity: VisualDensity.compact,
+                    icon: Icon(
+                      Icons.refresh_rounded,
+                      size: 18,
+                      color: surfaces.muted,
+                    ),
+                  )
+                : null,
+          ),
+          const SizedBox(height: 10),
+          if (!_service.supported)
+            Text(
+              'iOS、桌面与 Web 不提供跨应用使用统计。',
+              style: TextStyle(fontSize: 11.5, color: surfaces.faint),
+            )
+          else if (_loadingAccess)
+            Text(
+              '正在检查使用情况访问…',
+              style: TextStyle(fontSize: 11.5, color: surfaces.faint),
+            )
+          else if (_hasAccess != true)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '需要你在系统设置中授予「使用情况访问」权限，才能统计专注之外打开了哪些 App。应用不会读取屏幕内容。',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    height: 1.55,
+                    color: surfaces.muted,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    await _service.openAccessSettings();
+                    if (mounted) await _loadAccess();
+                  },
+                  icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                  label: const Text('开启使用情况访问'),
+                ),
+              ],
+            )
+          else
+            FutureBuilder<List<AppUsageEntry>>(
+              future: _query,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return Text(
+                    '正在读取使用情况…',
+                    style: TextStyle(fontSize: 11.5, color: surfaces.faint),
+                  );
+                }
+                final entries = (snapshot.data ?? const <AppUsageEntry>[])
+                    .take(5)
+                    .toList();
+                if (entries.isEmpty) {
+                  return Text(
+                    '这个周期还没有可用的使用记录。Android 的使用情况通常需要间隔一段时间才会汇总。',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      height: 1.55,
+                      color: surfaces.faint,
+                    ),
+                  );
+                }
+                final maxMinutes = entries.first.minutes.toDouble();
+                return Column(
+                  children: [
+                    for (final entry in entries) ...[
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              entry.label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: context.onSurface,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '${entry.minutes} 分钟',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: surfaces.muted,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 5),
+                      SoftProgressBar(
+                        value: maxMinutes <= 0 ? 0 : entry.minutes / maxMinutes,
+                        height: 4,
+                        color: scheme.primary,
+                      ),
+                      const SizedBox(height: 9),
+                    ],
+                  ],
+                );
+              },
+            ),
         ],
       ),
     );

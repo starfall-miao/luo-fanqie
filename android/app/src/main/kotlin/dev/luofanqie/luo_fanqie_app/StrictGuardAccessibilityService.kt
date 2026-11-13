@@ -64,7 +64,7 @@ class StrictGuardAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (!active || event == null) return
         val packageName = event.packageName?.toString() ?: return
-        if (packageName == this.packageName) {
+        if (packageName == this.packageName || whitelist.contains(packageName)) {
             hideOverlay()
         } else if (
             event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
@@ -91,6 +91,10 @@ class StrictGuardAccessibilityService : AccessibilityService() {
             active = true
             endAtMillis = storedEnd
             guardTitle = prefs.getString(KEY_TITLE, "专注") ?: "专注"
+            whitelist = (prefs.getString(KEY_WHITELIST, "") ?: "")
+                .split(',')
+                .filter { it.isNotBlank() }
+                .toSet()
         }
     }
 
@@ -272,6 +276,7 @@ class StrictGuardAccessibilityService : AccessibilityService() {
         private const val KEY_ACTIVE = "active"
         private const val KEY_END_AT = "end_at"
         private const val KEY_TITLE = "title"
+        private const val KEY_WHITELIST = "whitelist"
 
         @Volatile private var instance: StrictGuardAccessibilityService? = null
 
@@ -280,6 +285,8 @@ class StrictGuardAccessibilityService : AccessibilityService() {
         @Volatile private var endAtMillis = 0L
 
         @Volatile private var guardTitle = "专注"
+
+        @Volatile private var whitelist: Set<String> = emptySet()
 
         fun isEnabled(context: Context): Boolean {
             val manager = context.getSystemService(Context.ACCESSIBILITY_SERVICE)
@@ -294,15 +301,22 @@ class StrictGuardAccessibilityService : AccessibilityService() {
             }
         }
 
-        fun startGuard(context: Context, endAt: Long, title: String): Boolean {
+        fun startGuard(
+            context: Context,
+            endAt: Long,
+            title: String,
+            allowedPackages: List<String>,
+        ): Boolean {
             active = endAt > System.currentTimeMillis()
             endAtMillis = endAt
             guardTitle = title.ifBlank { "专注" }
+            whitelist = allowedPackages.filter { it.isNotBlank() }.toSet()
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                 .edit()
                 .putBoolean(KEY_ACTIVE, active)
                 .putLong(KEY_END_AT, endAt)
                 .putString(KEY_TITLE, guardTitle)
+                .putString(KEY_WHITELIST, whitelist.joinToString(","))
                 .apply()
             instance?.let {
                 it.restoreGuard()

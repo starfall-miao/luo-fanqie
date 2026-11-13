@@ -18,6 +18,7 @@ import '../../tasks/providers/task_controller.dart';
 import '../../timer/models/pomodoro_phase.dart';
 import '../../timer/providers/pomodoro_controller.dart';
 import '../../timer/theme/phase_style.dart';
+import 'lock_start_sheet.dart';
 import 'session_page.dart';
 import 'widgets/task_picker_sheet.dart';
 import 'widgets/timer_dial.dart';
@@ -606,6 +607,12 @@ class _TimerControls extends StatelessWidget {
             onPressed: () => launchFocusSession(context),
             icon: const Icon(Icons.open_in_full_rounded, size: 14),
             label: const Text('进入沉浸专注'),
+          )
+        else
+          TextButton.icon(
+            onPressed: () => showLockStartSheet(context),
+            icon: const Icon(Icons.lock_clock_rounded, size: 14),
+            label: const Text('锁机专注'),
           ),
       ],
     );

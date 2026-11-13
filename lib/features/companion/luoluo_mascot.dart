@@ -40,8 +40,7 @@ class _LuoLuoMascotState extends State<LuoLuoMascot>
     )..forward();
     _blinkTimer = Timer.periodic(const Duration(milliseconds: 5000), (_) {
       if (!mounted) return;
-      // 每隔一会儿轻轻呼吸、眨眼、甩一下尾巴，像真的趴在旁边。
-      _breath.forward(from: 0);
+      // 眨眼；不要周期性重启呼吸动画，否则会持续打断帧并拖慢低端设备。
       setState(() => _blinking = true);
       _blinkCloseTimer?.cancel();
       _blinkCloseTimer = Timer(const Duration(milliseconds: 130), () {

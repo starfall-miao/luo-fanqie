@@ -24,6 +24,7 @@ class AppSettings {
     this.themeMode = AppThemeMode.system,
     this.glassEffects = false,
     this.companionEnabled = true,
+    this.whitelistPackages = const <String>[],
   });
 
   final int focusMinutes;
@@ -52,6 +53,9 @@ class AppSettings {
 
   /// 是否显示落落看板娘。
   final bool companionEnabled;
+
+  /// 严格专注/锁机时允许打开的应用包名。为空表示不允许任何其他 App。
+  final List<String> whitelistPackages;
 
   static const defaults = AppSettings();
 
@@ -106,6 +110,9 @@ class AppSettings {
       strictExitUsed: (json['strictExitUsed'] as num?)?.toInt() ?? 0,
       glassEffects: json['glassEffects'] as bool? ?? false,
       companionEnabled: json['companionEnabled'] as bool? ?? true,
+      whitelistPackages:
+          (json['whitelistPackages'] as List?)?.whereType<String>().toList() ??
+          const <String>[],
       themeMode: AppThemeMode.values.firstWhere(
         (mode) => mode.name == json['themeMode'],
         orElse: () => AppThemeMode.system,
@@ -147,6 +154,7 @@ class AppSettings {
     'strictExitUsed': strictExitUsed,
     'glassEffects': glassEffects,
     'companionEnabled': companionEnabled,
+    'whitelistPackages': whitelistPackages,
     'themeMode': themeMode.name,
   };
 
@@ -169,6 +177,7 @@ class AppSettings {
     int? strictExitUsed,
     bool? glassEffects,
     bool? companionEnabled,
+    List<String>? whitelistPackages,
     AppThemeMode? themeMode,
   }) {
     return AppSettings(
@@ -190,6 +199,7 @@ class AppSettings {
       strictExitUsed: strictExitUsed ?? this.strictExitUsed,
       glassEffects: glassEffects ?? this.glassEffects,
       companionEnabled: companionEnabled ?? this.companionEnabled,
+      whitelistPackages: whitelistPackages ?? this.whitelistPackages,
       themeMode: themeMode ?? this.themeMode,
     );
   }

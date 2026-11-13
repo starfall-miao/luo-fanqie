@@ -10,6 +10,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/common.dart';
 import '../../../shared/widgets/tomato_mark.dart';
 import '../../companion/luoluo_companion.dart';
+import '../../guard/views/app_whitelist_sheet.dart';
 import '../../companion/luoluo_mascot.dart';
 import '../../settings/providers/settings_controller.dart';
 import '../../soundscape/soundscape_controller.dart';
@@ -34,12 +35,14 @@ Future<void> launchFocusSession(
   BuildContext context, {
   Task? task,
   bool resetPaused = false,
+  int? focusMinutes,
+  bool? strictOverride,
 }) async {
   if (!context.mounted) return;
   final timer = context.read<PomodoroController>();
   final settings = context.read<SettingsController>().settings;
   if (timer.isRunning) {
-    await _openSession(context, strict: settings.strictMode);
+    await _openSession(context, strict: strictOverride ?? settings.strictMode);
     return;
   }
   if (timer.isPaused && resetPaused) timer.reset();
@@ -49,11 +52,12 @@ Future<void> launchFocusSession(
   if (task != null) {
     timer.selectTask(task.id);
   }
-  final minutes = task?.focusMinutes ?? timer.selectedTask?.focusMinutes;
+  final minutes =
+      focusMinutes ?? task?.focusMinutes ?? timer.selectedTask?.focusMinutes;
   timer.start(focusMinutes: minutes);
   HapticFeedback.mediumImpact();
   if (!context.mounted) return;
-  await _openSession(context, strict: settings.strictMode);
+  await _openSession(context, strict: strictOverride ?? settings.strictMode);
 }
 
 Future<void> _openSession(BuildContext context, {required bool strict}) {
@@ -153,6 +157,7 @@ class _SessionPageState extends State<SessionPage> with WidgetsBindingObserver {
     final started = await _immersive.startStrictGuard(
       endAt: endAt,
       title: timer.selectedTask?.title ?? timer.phase.label,
+      whitelist: settings.whitelistPackages,
     );
     if (mounted) {
       setState(() => _guardEnabled = started);
@@ -362,6 +367,22 @@ class _SessionPageState extends State<SessionPage> with WidgetsBindingObserver {
               onTap: () {
                 Navigator.of(sheetContext).pop();
                 _showSounds();
+              },
+            ),
+            _ToolRow(
+              icon: Icons.apps_rounded,
+              title: '白名单应用',
+              subtitle:
+                  context
+                      .read<SettingsController>()
+                      .settings
+                      .whitelistPackages
+                      .isEmpty
+                  ? '还没有设置，严格专注时不允许其他 App'
+                  : '打开已允许的 ${context.read<SettingsController>().settings.whitelistPackages.length} 个应用',
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                showWhitelistLauncher(context);
               },
             ),
             _ToolRow(

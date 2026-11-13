@@ -351,4 +351,15 @@ void main() {
     expect(find.text('打断原因'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('可以从专注页打开锁机时长选择', (tester) async {
+    await _pumpApp(tester);
+    await tester.tap(find.text('锁机专注'));
+    await tester.pumpAndSettle();
+    expect(find.text('落落要把门关上啦'), findsOneWidget);
+    expect(find.text('开始锁机'), findsOneWidget);
+    await tester.tap(find.text('今天先不锁'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
 }

@@ -102,6 +102,10 @@ class SecurityPage extends StatelessWidget {
                           text: '静音通知：需要系统勿扰访问；专注期间静音，结束恢复，通知不会被读取或删除。',
                         ),
                         _SecurityLine(
+                          icon: Icons.query_stats_rounded,
+                          text: '应用使用情况：需要 Android 使用情况访问；只在本机汇总前台时长，不上传，也不读取屏幕内容。',
+                        ),
+                        _SecurityLine(
                           icon: Icons.wifi_off_rounded,
                           text: '网络：Android 的 INTERNET 是安装时普通权限，不会弹窗；只有配置并触发同步后才使用。',
                         ),

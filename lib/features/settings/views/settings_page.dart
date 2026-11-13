@@ -12,7 +12,9 @@ import '../../../shared/widgets/tomato_mark.dart';
 import '../../settings/models/app_settings.dart';
 import '../../settings/providers/settings_controller.dart';
 import '../../stats/providers/stats_controller.dart';
+import '../../stats/services/app_usage_service.dart';
 import '../../sync/providers/sync_controller.dart';
+import '../../guard/views/app_whitelist_sheet.dart';
 import '../../sync/views/sync_settings_sheet.dart';
 import 'security_page.dart';
 import '../../tasks/providers/task_controller.dart';
@@ -320,6 +322,16 @@ class SettingsPage extends StatelessWidget {
                             ),
                             _RowDivider(),
                             _SettingRow(
+                              icon: Icons.apps_rounded,
+                              title: '应用白名单',
+                              subtitle: '严格专注时允许打开的应用；为空则不允许其他 App',
+                              value: settings.whitelistPackages.isEmpty
+                                  ? '未设置'
+                                  : '${settings.whitelistPackages.length} 个',
+                              onTap: () => showAppWhitelistPicker(context),
+                            ),
+                            _RowDivider(),
+                            _SettingRow(
                               icon: Icons.accessibility_new_rounded,
                               title: '学霸守护设置',
                               subtitle: '打开系统无障碍设置，开启或关闭置顶守护',
@@ -452,6 +464,19 @@ class SettingsPage extends StatelessWidget {
                                 );
                             },
                           ),
+                          if (!kIsWeb &&
+                              defaultTargetPlatform ==
+                                  TargetPlatform.android) ...[
+                            _RowDivider(),
+                            _SettingRow(
+                              icon: Icons.query_stats_rounded,
+                              title: '应用使用情况',
+                              subtitle: '需要系统使用情况访问；只在统计页展示汇总',
+                              value: '去授权',
+                              onTap: () =>
+                                  const AppUsageService().openAccessSettings(),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -536,11 +561,11 @@ class SettingsPage extends StatelessWidget {
                             icon: Icons.info_outline_rounded,
                             title: '版本',
                             subtitle: '落·番茄',
-                            value: '1.6.0',
+                            value: '1.7.0',
                             onTap: () => showLicensePage(
                               context: context,
                               applicationName: '落·番茄',
-                              applicationVersion: '1.6.0',
+                              applicationVersion: '1.7.0',
                               applicationLegalese: '把时间种成番茄。',
                             ),
                           ),

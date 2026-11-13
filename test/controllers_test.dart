@@ -185,6 +185,20 @@ void main() {
       expect(restored.themeMode, ThemeMode.dark);
     });
 
+    test('白名单与学霸拆分选项可持久化', () {
+      final storage = MemoryStorage();
+      final controller = SettingsController(storage);
+      controller.setWhitelistPackages(['com.example.dictionary']);
+      controller.setStrictOverlay(false);
+      controller.setStrictLockTask(true);
+      controller.setStrictDnd(true);
+      final restored = SettingsController(storage);
+      expect(restored.settings.whitelistPackages, ['com.example.dictionary']);
+      expect(restored.settings.strictOverlay, isFalse);
+      expect(restored.settings.strictLockTask, isTrue);
+      expect(restored.settings.strictDnd, isTrue);
+    });
+
     test('损坏的设置数据回退默认值', () {
       final storage = MemoryStorage({'luo_fanqie.settings.v1': '{bad json'});
       final controller = SettingsController(storage);

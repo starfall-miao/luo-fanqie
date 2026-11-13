@@ -9,6 +9,7 @@ import '../../../shared/widgets/common.dart';
 import '../../../shared/widgets/soft_card.dart';
 import '../../../shared/widgets/tomato_mark.dart';
 import '../../companion/luoluo_mascot.dart';
+import '../../focus/views/lock_start_sheet.dart';
 import '../../focus/views/session_page.dart';
 import '../../focus/views/widgets/task_picker_sheet.dart';
 import '../../focus/views/widgets/timer_dial.dart';
@@ -1012,6 +1013,13 @@ class _QuickActions extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+          Divider(height: 1, color: surfaces.border.withValues(alpha: 0.42)),
+          _QuickRow(
+            icon: Icons.lock_clock_rounded,
+            title: '锁机专注',
+            value: '按时长开始',
+            onTap: () => showLockStartSheet(context),
           ),
           Divider(height: 1, color: surfaces.border.withValues(alpha: 0.42)),
           _QuickRow(

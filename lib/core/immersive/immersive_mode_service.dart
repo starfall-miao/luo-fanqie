@@ -76,11 +76,13 @@ class ImmersiveModeService {
   Future<bool> startStrictGuard({
     required DateTime endAt,
     required String title,
+    List<String> whitelist = const <String>[],
   }) async {
     if (!supported) return false;
     return await _invoke<bool>('startStrictGuard', <String, Object>{
           'endAtMillis': endAt.millisecondsSinceEpoch,
           'title': title,
+          'whitelist': whitelist,
         }) ??
         false;
   }

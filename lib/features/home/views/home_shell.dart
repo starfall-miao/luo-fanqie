@@ -171,7 +171,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                 onOpenStats: _openStats,
               );
             }
-            return IndexedStack(index: _index, children: pages);
+            return pages[_index.clamp(0, pages.length - 1)];
           },
         ),
         bottomNavigationBar: LayoutBuilder(

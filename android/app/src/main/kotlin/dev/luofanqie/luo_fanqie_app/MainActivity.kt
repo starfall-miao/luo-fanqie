@@ -2,7 +2,9 @@ package dev.luofanqie.luo_fanqie_app
 
 import android.Manifest
 import android.app.ActivityManager
+import android.app.AppOpsManager
 import android.app.NotificationManager
+import android.app.usage.UsageStatsManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -11,12 +13,16 @@ import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import org.json.JSONArray
+import android.os.Process
 
 class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         TimerNotifications.ensureChannel(this)
         restoreDndIfNeeded()
+        configureAppChannel(flutterEngine)
+        configureUsageChannel(flutterEngine)
 
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
@@ -149,6 +155,7 @@ class MainActivity : FlutterActivity() {
                 "startStrictGuard" -> {
                     val endAtMillis = call.argument<Number>("endAtMillis")?.toLong()
                     val title = call.argument<String>("title").orEmpty()
+                    val whitelist = call.argument<List<String>>("whitelist") ?: emptyList()
                     if (endAtMillis == null || endAtMillis <= System.currentTimeMillis()) {
                         result.error("invalid_arguments", "endAtMillis is required", null)
                     } else {
@@ -156,6 +163,7 @@ class MainActivity : FlutterActivity() {
                             this,
                             endAtMillis,
                             title,
+                            whitelist,
                         )
                         result.success(started)
                     }
@@ -174,6 +182,158 @@ class MainActivity : FlutterActivity() {
                 "clearKeepScreenOn" -> {
                     window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                     result.success(null)
+                }
+
+                else -> result.notImplemented()
+            }
+        }
+    }
+
+    private fun configureUsageChannel(flutterEngine: FlutterEngine) {
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            USAGE_CHANNEL,
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "hasUsageAccess" -> result.success(hasUsageAccess())
+                "openUsageAccessSettings" -> {
+                    try {
+                        startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                        result.success(null)
+                    } catch (error: Exception) {
+                        result.error("usage_settings_failed", error.message, null)
+                    }
+                }
+                "queryUsage" -> {
+                    val start = call.argument<Number>("startMillis")?.toLong()
+                    val end = call.argument<Number>("endMillis")?.toLong()
+                    if (start == null || end == null || end <= start) {
+                        result.error("invalid_arguments", "startMillis/endMillis required", null)
+                    } else if (!hasUsageAccess()) {
+                        result.error("usage_access_denied", "需要系统使用情况访问权限", null)
+                    } else {
+                        try {
+                            result.success(queryUsage(start, end))
+                        } catch (error: Exception) {
+                            result.error("query_usage_failed", error.message, null)
+                        }
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
+    }
+
+    private fun hasUsageAccess(): Boolean {
+        val appOps = getSystemService(AppOpsManager::class.java) ?: return false
+        val mode = appOps.checkOpNoThrow(
+            AppOpsManager.OPSTR_GET_USAGE_STATS,
+            Process.myUid(),
+            packageName,
+        )
+        return mode == AppOpsManager.MODE_ALLOWED
+    }
+
+    private fun queryUsage(start: Long, end: Long): String {
+        val manager = getSystemService(UsageStatsManager::class.java)
+            ?: return "[]"
+        val grouped = mutableMapOf<String, Long>()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val stats = manager.queryAndAggregateUsageStats(start, end)
+            for ((packageName, stat) in stats) {
+                if (stat.totalTimeInForeground > 0) {
+                    grouped[packageName] = stat.totalTimeInForeground
+                }
+            }
+        } else {
+            val stats = manager.queryUsageStats(
+                UsageStatsManager.INTERVAL_DAILY,
+                start,
+                end,
+            )
+            for (stat in stats) {
+                if (stat.totalTimeInForeground > 0) {
+                    grouped[stat.packageName] =
+                        (grouped[stat.packageName] ?: 0L) + stat.totalTimeInForeground
+                }
+            }
+        }
+        val apps = JSONArray()
+        for ((packageName, millis) in grouped.entries.sortedByDescending { it.value }) {
+            if (packageName == this.packageName) continue
+            val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
+                ?: continue
+            if (launchIntent == null) continue
+            val label = try {
+                packageManager.getApplicationLabel(
+                    packageManager.getApplicationInfo(packageName, 0),
+                ).toString()
+            } catch (_: Exception) {
+                packageName
+            }
+            apps.put(
+                org.json.JSONObject()
+                    .put("packageName", packageName)
+                    .put("label", label)
+                    .put("minutes", millis / 60000L),
+            )
+        }
+        return apps.toString()
+    }
+
+    private fun configureAppChannel(flutterEngine: FlutterEngine) {
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            APP_CHANNEL,
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "listApps" -> {
+                    try {
+                        val intent = Intent(Intent.ACTION_MAIN).apply {
+                            addCategory(Intent.CATEGORY_LAUNCHER)
+                        }
+                        val infos = packageManager.queryIntentActivities(
+                            intent,
+                            PackageManager.MATCH_ALL,
+                        )
+                        val seen = mutableSetOf<String>()
+                        val apps = JSONArray()
+                        for (info in infos) {
+                            val packageName = info.activityInfo.packageName
+                            if (packageName == this.packageName || !seen.add(packageName)) {
+                                continue
+                            }
+                            val label = info.loadLabel(packageManager).toString()
+                            apps.put(
+                                org.json.JSONObject()
+                                    .put("packageName", packageName)
+                                    .put("label", label),
+                            )
+                        }
+                        result.success(apps.toString())
+                    } catch (error: Exception) {
+                        result.error("list_apps_failed", error.message, null)
+                    }
+                }
+
+                "launchApp" -> {
+                    val packageName = call.argument<String>("packageName")
+                    if (packageName.isNullOrBlank()) {
+                        result.error("invalid_arguments", "packageName is required", null)
+                    } else {
+                        val intent = packageManager.getLaunchIntentForPackage(packageName)
+                        if (intent == null) {
+                            result.error("app_not_found", "找不到可启动的 App", null)
+                        } else {
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            try {
+                                startActivity(intent)
+                                result.success(true)
+                            } catch (error: Exception) {
+                                result.error("launch_failed", error.message, null)
+                            }
+                        }
+                    }
                 }
 
                 else -> result.notImplemented()
@@ -208,6 +368,8 @@ class MainActivity : FlutterActivity() {
         private const val NOTIFICATION_CHANNEL = "dev.luofanqie/notifications"
         private const val DND_PREFS = "luo_fanqie_dnd"
         private const val DND_PREVIOUS = "previous_filter"
+        private const val APP_CHANNEL = "dev.luofanqie/apps"
+        private const val USAGE_CHANNEL = "dev.luofanqie/usage"
         private const val IMMERSIVE_CHANNEL = "dev.luofanqie/immersive"
         private const val NOTIFICATION_PERMISSION_REQUEST = 7300
     }

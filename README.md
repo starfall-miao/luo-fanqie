@@ -4,7 +4,7 @@
 
 <p>
   <img alt="status" src="https://img.shields.io/badge/status-beta-orange" />
-  <img alt="version" src="https://img.shields.io/badge/version-1.6.0--beta-f15b3d" />
+  <img alt="version" src="https://img.shields.io/badge/version-1.7.0--beta-f15b3d" />
   <img alt="flutter" src="https://img.shields.io/badge/Flutter-3.47.9-027DFD?logo=flutter" />
   <a href="https://github.com/starfall-miao/luo-fanqie/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/starfall-miao/luo-fanqie/actions/workflows/ci.yml/badge.svg" /></a>
   <a href="https://github.com/starfall-miao/luo-fanqie/releases"><img alt="beta release" src="https://img.shields.io/badge/release-beta-orange?logo=github" /></a>
@@ -18,7 +18,9 @@
 - 每种待办都可以单独设定单次专注时长，支持自定义标签和一键开始。
 - 横屏 / 平板 / 电脑端取消标签栏，一页卡片仪表盘展示全部核心内容，并可打开完整统计。
 - 猫娘看板娘「落落」陪你专注，会眨眼、抱着书，也会说一些温柔的话。
-- 学霸模式拆成置顶提醒、锁定任务、静音通知、每月 3 次退出机会等可配置项。
+- 学霸模式拆成置顶提醒、锁定任务、静音通知、白名单、每月 3 次退出机会等可配置项。
+- 手动锁机：选择 25–120 分钟，进入严格专注；自动定时锁机仍在 Roadmap。
+- 统计新增日/周/月/年表和打断原因；Android 可选应用使用情况统计。
 - 毛玻璃可关闭；默认使用轻量纯色卡片，低端机更流畅。
 - 开始专注后进入沉浸式会话页：柔和背景、激励文案、最小化、工具与学霸模式。
 - 可选 **用户自建文件服务器同步**（WebDAV / OpenAlist / FTP）；Android 原生通知；六端 Beta 自动构建。
@@ -144,7 +146,7 @@ flutter build apk --release
 ### 测试
 
 ```bash
-flutter test          # 51 项单元 / 组件测试（截图测试默认跳过）
+flutter test          # 53 项单元 / 组件测试（截图测试默认跳过）
 dart analyze
 ```
 
@@ -203,7 +205,7 @@ android/ · ios/ · macos/ · windows/ · linux/ · web/
 - 完整权限申请逻辑、数据流向与已知边界见 [`SECURITY.md`](SECURITY.md)。
 - 学霸守护只在 Android 生效，且需要用户手动开启无障碍服务；iOS / 桌面只有应用内限制。
 - **不会实现**：阻止其他 App 启动、拦截所有系统通知、隐藏桌面图标、防卸载等依赖辅助功能 / 设备管理员 / 定制 ROM 的强制性能力。这与平台政策、用户安全与“可退出”原则冲突。
-- 当前未完成：iOS 本地通知、更多主题、桌面小组件、更多环境音、更完整的习惯日历。
+- 当前未完成：自动定时锁机、iOS 本地通知、更多主题、桌面小组件、更多环境音、更完整的习惯日历。
 
 ## Roadmap
 
@@ -213,7 +215,7 @@ android/ · ios/ · macos/ · windows/ · linux/ · web/
 - [x] 用户自建文件服务器同步（WebDAV / Alist / FTP）、Android 通知、六端 Actions Beta
 - [x] 白噪音与背景音（雨声 / 海浪 / 篝火，本地音频）
 - [x] 落落猫娘看板娘、多选待办、横屏完整统计、可选毛玻璃
-- [x] 日/周/月/年统计表、打断原因统计、学霸守护拆分选项
+- [x] 日/周/月/年统计表、打断原因统计、学霸守护拆分选项、应用白名单与手动锁机
 - [ ] 更完整的习惯打卡日历与目标复盘
 - [ ] iOS 本地通知、桌面通知
 - [ ] 更多主题与小组件
@@ -224,4 +226,4 @@ android/ · ios/ · macos/ · windows/ · linux/ · web/
 - 截图字体：[Noto Sans CJK SC](https://github.com/notofonts/noto-cjk)（SIL Open Font License，已附带许可证）
 - [fl_chart](https://github.com/imaNNeo/fl_chart)、[provider](https://pub.dev/packages/provider)、[shared_preferences](https://pub.dev/packages/shared_preferences)、[http](https://pub.dev/packages/http)
 
-<sub>当前版本：1.6.0 · Beta · 先定待办，再定时间。</sub>
+<sub>当前版本：1.7.0 · Beta · 先定待办，再定时间。</sub>
