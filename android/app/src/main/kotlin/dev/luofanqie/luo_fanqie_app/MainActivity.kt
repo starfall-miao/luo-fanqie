@@ -1,6 +1,8 @@
 package dev.luofanqie.luo_fanqie_app
 
 import android.Manifest
+import android.app.ActivityManager
+import android.app.NotificationManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -14,6 +16,7 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         TimerNotifications.ensureChannel(this)
+        restoreDndIfNeeded()
 
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
@@ -71,6 +74,78 @@ class MainActivity : FlutterActivity() {
                     }
                 }
 
+                "startLockTask" -> {
+                    try {
+                        val activityManager = getSystemService(ActivityManager::class.java)
+                        if (activityManager?.lockTaskModeState ==
+                            ActivityManager.LOCK_TASK_MODE_NONE
+                        ) {
+                            startLockTask()
+                        }
+                        result.success(null)
+                    } catch (error: Exception) {
+                        result.error("lock_task_failed", error.message, null)
+                    }
+                }
+
+                "stopLockTask" -> {
+                    try {
+                        val activityManager = getSystemService(ActivityManager::class.java)
+                        if (activityManager?.lockTaskModeState !=
+                            ActivityManager.LOCK_TASK_MODE_NONE
+                        ) {
+                            stopLockTask()
+                        }
+                        result.success(null)
+                    } catch (error: Exception) {
+                        result.error("unlock_task_failed", error.message, null)
+                    }
+                }
+
+                "isDndAccessGranted" -> {
+                    val manager = getSystemService(NotificationManager::class.java)
+                    result.success(manager?.isNotificationPolicyAccessGranted == true)
+                }
+
+                "openDndAccessSettings" -> {
+                    try {
+                        startActivity(Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
+                        result.success(null)
+                    } catch (error: Exception) {
+                        result.error("dnd_settings_failed", error.message, null)
+                    }
+                }
+
+                "startDnd" -> {
+                    val manager = getSystemService(NotificationManager::class.java)
+                    if (manager == null || !manager.isNotificationPolicyAccessGranted) {
+                        result.success(false)
+                    } else {
+                        val prefs = getSharedPreferences(DND_PREFS, MODE_PRIVATE)
+                        if (!prefs.contains(DND_PREVIOUS)) {
+                            prefs.edit()
+                                .putInt(DND_PREVIOUS, manager.currentInterruptionFilter)
+                                .apply()
+                        }
+                        manager.setInterruptionFilter(
+                            NotificationManager.INTERRUPTION_FILTER_NONE,
+                        )
+                        result.success(true)
+                    }
+                }
+
+                "stopDnd" -> {
+                    val manager = getSystemService(NotificationManager::class.java)
+                    val prefs = getSharedPreferences(DND_PREFS, MODE_PRIVATE)
+                    if (manager != null && prefs.contains(DND_PREVIOUS)) {
+                        manager.setInterruptionFilter(
+                            prefs.getInt(DND_PREVIOUS, NotificationManager.INTERRUPTION_FILTER_ALL),
+                        )
+                        prefs.edit().remove(DND_PREVIOUS).apply()
+                    }
+                    result.success(null)
+                }
+
                 "startStrictGuard" -> {
                     val endAtMillis = call.argument<Number>("endAtMillis")?.toLong()
                     val title = call.argument<String>("title").orEmpty()
@@ -106,6 +181,17 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    private fun restoreDndIfNeeded() {
+        val manager = getSystemService(NotificationManager::class.java) ?: return
+        val prefs = getSharedPreferences(DND_PREFS, MODE_PRIVATE)
+        if (prefs.contains(DND_PREVIOUS) && manager.isNotificationPolicyAccessGranted) {
+            manager.setInterruptionFilter(
+                prefs.getInt(DND_PREVIOUS, NotificationManager.INTERRUPTION_FILTER_ALL),
+            )
+            prefs.edit().remove(DND_PREVIOUS).apply()
+        }
+    }
+
     private fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
@@ -120,6 +206,8 @@ class MainActivity : FlutterActivity() {
 
     companion object {
         private const val NOTIFICATION_CHANNEL = "dev.luofanqie/notifications"
+        private const val DND_PREFS = "luo_fanqie_dnd"
+        private const val DND_PREVIOUS = "previous_filter"
         private const val IMMERSIVE_CHANNEL = "dev.luofanqie/immersive"
         private const val NOTIFICATION_PERMISSION_REQUEST = 7300
     }

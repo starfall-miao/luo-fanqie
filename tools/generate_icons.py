@@ -9,12 +9,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageEnhance, ImageFilter
 
 ROOT = Path(__file__).resolve().parent.parent
 SOURCE = ROOT / "assets/icon/app_icon.png"
 ADAPTIVE_BACKGROUND = (240, 238, 238)
-ICON_INSET = 0.78
+ICON_INSET = 0.86
 
 
 def load_master() -> Image.Image:
@@ -22,13 +22,24 @@ def load_master() -> Image.Image:
     side = min(image.size)
     left = (image.width - side) // 2
     top = (image.height - side) // 2
-    return image.crop((left, top, left + side, top + side)).resize(
+    image = image.crop((left, top, left + side, top + side)).resize(
         (1024, 1024), Image.LANCZOS
+    )
+    # 源图偏柔和，在缩小前做一次轻量锐化与对比，避免小尺寸图标糊成一团。
+    image = ImageEnhance.Contrast(image).enhance(1.06)
+    image = ImageEnhance.Sharpness(image).enhance(1.35)
+    return image.filter(
+        ImageFilter.UnsharpMask(radius=1.2, percent=110, threshold=2)
     )
 
 
 def resize(master: Image.Image, size: int) -> Image.Image:
-    return master.resize((size, size), Image.LANCZOS)
+    image = master.resize((size, size), Image.LANCZOS)
+    if size <= 256:
+        image = image.filter(
+            ImageFilter.UnsharpMask(radius=0.7, percent=75, threshold=1)
+        )
+    return image
 
 
 def rounded(master: Image.Image, size: int, ratio: float = 0.22) -> Image.Image:

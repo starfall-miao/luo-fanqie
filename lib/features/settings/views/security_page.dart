@@ -94,6 +94,14 @@ class SecurityPage extends StatelessWidget {
                           text: '置顶提醒：离开落·番茄时由无障碍服务绘制全屏提醒，计时结束自动回到应用；可随时点「结束守护」或关闭系统无障碍服务。',
                         ),
                         _SecurityLine(
+                          icon: Icons.lock_outline_rounded,
+                          text: '锁定任务：可选 Android screen pinning，由系统确认；不会隐藏桌面图标或修改壁纸/启动器。',
+                        ),
+                        _SecurityLine(
+                          icon: Icons.notifications_off_outlined,
+                          text: '静音通知：需要系统勿扰访问；专注期间静音，结束恢复，通知不会被读取或删除。',
+                        ),
+                        _SecurityLine(
                           icon: Icons.wifi_off_rounded,
                           text: '网络：Android 的 INTERNET 是安装时普通权限，不会弹窗；只有配置并触发同步后才使用。',
                         ),

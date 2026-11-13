@@ -6,20 +6,27 @@ import 'package:flutter/foundation.dart';
 import '../../../core/storage/key_value_storage.dart';
 import '../../../core/utils/date_utils.dart';
 import '../models/focus_session.dart';
+import '../models/interruption_event.dart';
 
 class StatsController extends ChangeNotifier {
   StatsController(this._storage, {DateTime Function()? clock})
     : _now = clock ?? DateTime.now {
     final raw = _storage.read(_storageKey);
     if (raw != null) _sessions = _decode(raw);
+    final interruptionsRaw = _storage.read(_interruptionKey);
+    if (interruptionsRaw != null) {
+      _interruptions = _decodeInterruptions(interruptionsRaw);
+    }
     _sort();
   }
 
   static const _storageKey = 'luo_fanqie.sessions.v1';
+  static const _interruptionKey = 'luo_fanqie.interruptions.v1';
 
   final KeyValueStorage _storage;
   final DateTime Function() _now;
   List<FocusSession> _sessions = <FocusSession>[];
+  List<InterruptionEvent> _interruptions = <InterruptionEvent>[];
 
   List<FocusSession> get sessions => List<FocusSession>.unmodifiable(_sessions);
 
@@ -27,6 +34,38 @@ class StatsController extends ChangeNotifier {
       _sessions.fold<int>(0, (sum, session) => sum + session.minutes);
 
   int get totalSessions => _sessions.length;
+
+  List<InterruptionEvent> get interruptions =>
+      List<InterruptionEvent>.unmodifiable(_interruptions);
+
+  List<FocusSession> sessionsBetween(DateTime start, DateTime end) {
+    return _sessions
+        .where(
+          (session) =>
+              !session.endedAt.isBefore(start) && session.endedAt.isBefore(end),
+        )
+        .toList(growable: false);
+  }
+
+  List<InterruptionEvent> interruptionsBetween(DateTime start, DateTime end) {
+    return _interruptions
+        .where((event) => !event.at.isBefore(start) && event.at.isBefore(end))
+        .toList(growable: false);
+  }
+
+  bool recordInterruption(InterruptionEvent event) {
+    if (_interruptions.any((existing) => existing.id == event.id)) return false;
+    _interruptions = [event, ..._interruptions];
+    _interruptions.sort((a, b) => b.at.compareTo(a.at));
+    notifyListeners();
+    unawaited(
+      _storage.write(
+        _interruptionKey,
+        jsonEncode(_interruptions.map((event) => event.toJson()).toList()),
+      ),
+    );
+    return true;
+  }
 
   int get todayMinutes => minutesOn(_now());
 
@@ -166,8 +205,10 @@ class StatsController extends ChangeNotifier {
 
   void clearAll() {
     _sessions = <FocusSession>[];
+    _interruptions = <InterruptionEvent>[];
     notifyListeners();
     unawaited(_storage.delete(_storageKey));
+    unawaited(_storage.delete(_interruptionKey));
   }
 
   void _sort() {
@@ -185,6 +226,22 @@ class StatsController extends ChangeNotifier {
           .toList();
     } catch (_) {
       return <FocusSession>[];
+    }
+  }
+
+  List<InterruptionEvent> _decodeInterruptions(String raw) {
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return <InterruptionEvent>[];
+      return decoded
+          .whereType<Map>()
+          .map(
+            (json) =>
+                InterruptionEvent.fromJson(Map<String, dynamic>.from(json)),
+          )
+          .toList();
+    } catch (_) {
+      return <InterruptionEvent>[];
     }
   }
 }

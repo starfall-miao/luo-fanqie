@@ -48,6 +48,33 @@ class SettingsPage extends StatelessWidget {
     if (go == true) await service.openAccessibilitySettings();
   }
 
+  Future<void> _ensureDnd(BuildContext context) async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+    const service = ImmersiveModeService();
+    final granted = await service.isDndAccessGranted();
+    if (granted || !context.mounted) return;
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('允许专注时静音通知？'),
+        content: const Text(
+          '需要你在系统设置里授予「勿扰访问」权限。专注期间系统通知会静音，结束后自动恢复原来的勿扰状态；通知不会被删除，也不会被读取内容。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('稍后'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('去开启'),
+          ),
+        ],
+      ),
+    );
+    if (go == true) await service.openDndAccessSettings();
+  }
+
   @override
   Widget build(BuildContext context) {
     final settingsController = context.watch<SettingsController>();
@@ -252,6 +279,45 @@ class SettingsPage extends StatelessWidget {
                           if (!kIsWeb &&
                               defaultTargetPlatform ==
                                   TargetPlatform.android) ...[
+                            _RowDivider(),
+                            _SwitchRow(
+                              icon: Icons.fullscreen_rounded,
+                              title: '置顶全屏提醒',
+                              subtitle: '离开应用时全屏提醒；需要无障碍守护',
+                              value: settings.strictOverlay,
+                              onChanged: (value) async {
+                                settingsController.setStrictOverlay(value);
+                                if (value) await _ensureStrictGuard(context);
+                              },
+                            ),
+                            _RowDivider(),
+                            _SwitchRow(
+                              icon: Icons.lock_outline_rounded,
+                              title: '锁定任务',
+                              subtitle: '禁止桌面与多任务，开始时会由系统确认',
+                              value: settings.strictLockTask,
+                              onChanged: settingsController.setStrictLockTask,
+                            ),
+                            _RowDivider(),
+                            _SwitchRow(
+                              icon: Icons.notifications_off_outlined,
+                              title: '专注时静音通知',
+                              subtitle: '开启系统勿扰，结束后恢复；不读取通知内容',
+                              value: settings.strictDnd,
+                              onChanged: (value) async {
+                                settingsController.setStrictDnd(value);
+                                if (value) await _ensureDnd(context);
+                              },
+                            ),
+                            _RowDivider(),
+                            _SettingRow(
+                              icon: Icons.event_available_rounded,
+                              title: '本月退出机会',
+                              subtitle: '提前结束严格专注会消耗一次，每月自动恢复三次',
+                              value:
+                                  '剩余 ${settingsController.strictExitsRemaining}/3',
+                              onTap: null,
+                            ),
                             _RowDivider(),
                             _SettingRow(
                               icon: Icons.accessibility_new_rounded,
@@ -470,11 +536,11 @@ class SettingsPage extends StatelessWidget {
                             icon: Icons.info_outline_rounded,
                             title: '版本',
                             subtitle: '落·番茄',
-                            value: '1.5.0',
+                            value: '1.6.0',
                             onTap: () => showLicensePage(
                               context: context,
                               applicationName: '落·番茄',
-                              applicationVersion: '1.5.0',
+                              applicationVersion: '1.6.0',
                               applicationLegalese: '把时间种成番茄。',
                             ),
                           ),

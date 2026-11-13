@@ -201,7 +201,7 @@ class _TasksPageState extends State<TasksPage> {
                     Text(
                       '长按多选',
                       style: TextStyle(
-                        fontSize: 10.5,
+                        fontSize: 11.5,
                         color: context.surfaces.faint,
                       ),
                     ),
@@ -275,21 +275,6 @@ class _TasksPageState extends State<TasksPage> {
                     );
                   },
                 ),
-                if (visible.isNotEmpty) ...[
-                  const SizedBox(height: 20),
-                  Center(
-                    child: Text(
-                      visible.every((task) => task.done)
-                          ? '今天的番茄都收好啦，明天见。'
-                          : '一次只做一件事，落落觉得你已经很棒啦。',
-                      style: TextStyle(
-                        fontSize: 11,
-                        letterSpacing: 0.4,
-                        color: context.surfaces.faint,
-                      ),
-                    ),
-                  ),
-                ],
               ],
             ),
           ),

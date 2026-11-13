@@ -22,7 +22,39 @@ class ImmersiveModeService {
   Future<void> leave() async {
     if (!supported) return;
     await _invoke<void>('stopStrictGuard');
+    await _invoke<void>('stopLockTask');
+    await _invoke<void>('stopDnd');
     await _invoke<void>('clearKeepScreenOn');
+  }
+
+  Future<void> startLockTask() async {
+    if (!supported) return;
+    await _invoke<void>('startLockTask');
+  }
+
+  Future<void> stopLockTask() async {
+    if (!supported) return;
+    await _invoke<void>('stopLockTask');
+  }
+
+  Future<bool> isDndAccessGranted() async {
+    if (!supported) return false;
+    return await _invoke<bool>('isDndAccessGranted') ?? false;
+  }
+
+  Future<void> openDndAccessSettings() async {
+    if (!supported) return;
+    await _invoke<void>('openDndAccessSettings');
+  }
+
+  Future<bool> startDnd() async {
+    if (!supported) return false;
+    return await _invoke<bool>('startDnd') ?? false;
+  }
+
+  Future<void> stopDnd() async {
+    if (!supported) return;
+    await _invoke<void>('stopDnd');
   }
 
   /// 专注自然结束时使用：保留学霸守护的到点回跳，仅关闭常亮。

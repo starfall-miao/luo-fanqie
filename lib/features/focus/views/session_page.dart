@@ -13,6 +13,7 @@ import '../../companion/luoluo_companion.dart';
 import '../../companion/luoluo_mascot.dart';
 import '../../settings/providers/settings_controller.dart';
 import '../../soundscape/soundscape_controller.dart';
+import '../../stats/models/interruption_event.dart';
 import '../../stats/providers/stats_controller.dart';
 import '../../tasks/models/task.dart';
 import '../../timer/models/pomodoro_phase.dart';
@@ -132,11 +133,23 @@ class _SessionPageState extends State<SessionPage> with WidgetsBindingObserver {
   }
 
   Future<void> _startImmersive() async {
+    final settings = context.read<SettingsController>().settings;
     await _immersive.enter();
     if (!widget.strict) return;
     final timer = _timer;
+    if (settings.strictLockTask) {
+      await _immersive.startLockTask();
+    }
+    if (settings.strictDnd) {
+      await _immersive.startDnd();
+    }
     final endAt = timer?.endAt;
-    if (timer == null || endAt == null || !timer.isRunning) return;
+    if (!settings.strictOverlay ||
+        timer == null ||
+        endAt == null ||
+        !timer.isRunning) {
+      return;
+    }
     final started = await _immersive.startStrictGuard(
       endAt: endAt,
       title: timer.selectedTask?.title ?? timer.phase.label,
@@ -156,7 +169,9 @@ class _SessionPageState extends State<SessionPage> with WidgetsBindingObserver {
     if (timer.completedInCycle > _lastCompletedInCycle) {
       _lastCompletedInCycle = timer.completedInCycle;
       setState(() => _completed = true);
-      // 自然结束时不立即清除原生守护：如果应用在后台，让守护到点自动回跳。
+      // 自然结束：先释放通知静音与任务锁定，保留守护到点回跳的能力。
+      unawaited(_immersive.stopDnd());
+      unawaited(_immersive.stopLockTask());
       unawaited(_immersive.clearKeepScreenOn());
     }
   }
@@ -168,22 +183,129 @@ class _SessionPageState extends State<SessionPage> with WidgetsBindingObserver {
 
   Future<void> _finish({bool emergency = false}) async {
     if (_finishing) return;
-    final confirmed = await showConfirmDialog(
-      context,
-      title: emergency ? '结束学霸模式？' : '提前结束这次专注？',
-      message: emergency
-          ? '本轮专注不会计入番茄记录，学霸守护会解除。'
-          : '结束本轮不会计入番茄记录，休息时间可以从首页重新开始。',
-      confirmText: '结束本轮',
-      destructive: true,
-    );
-    if (!confirmed || !mounted) return;
+    final timer = _timer;
+    final focusRunning =
+        timer != null &&
+        timer.phase == PomodoroPhase.focus &&
+        timer.progress > 0 &&
+        !_completed;
+    String? reason;
+    if (focusRunning) {
+      final settingsController = context.read<SettingsController>();
+      if (widget.strict && settingsController.strictExitsRemaining <= 0) {
+        await showDialog<void>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('这个月的退出机会用完啦'),
+            content: const Text('落落会陪你等到计时结束。系统设置和无障碍服务仍然可以随时关闭，这是留给你的安全出口。'),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('继续专注'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+      reason = await _askInterruptionReason(emergency: emergency);
+      if (reason == null || !mounted) return;
+      if (widget.strict) settingsController.consumeStrictExit();
+      final elapsed = math.max(
+        1,
+        ((timer.totalMillis - timer.remainingMillis) / 60000).round(),
+      );
+      context.read<StatsController>().recordInterruption(
+        InterruptionEvent(
+          id: 'interruption-${DateTime.now().microsecondsSinceEpoch}',
+          taskId: timer.selectedTaskId,
+          taskTitle: timer.selectedTask?.title ?? '自由专注',
+          reason: reason,
+          at: DateTime.now(),
+          elapsedMinutes: elapsed,
+        ),
+      );
+    } else {
+      final confirmed = await showConfirmDialog(
+        context,
+        title: emergency ? '结束学霸模式？' : '提前结束这次专注？',
+        message: emergency
+            ? '本轮专注不会计入番茄记录，学霸守护会解除。'
+            : '结束本轮不会计入番茄记录，休息时间可以从首页重新开始。',
+        confirmText: '结束本轮',
+        destructive: true,
+      );
+      if (!confirmed || !mounted) return;
+    }
     _finishing = true;
     _allowPop = true;
-    _timer?.reset();
+    timer?.reset();
     await _immersive.stopStrictGuard();
     await _immersive.leave();
     if (mounted) Navigator.of(context).pop();
+  }
+
+  Future<String?> _askInterruptionReason({required bool emergency}) async {
+    const reasons = <String>['分心走神', '接电话 / 回消息', '临时任务', '会议', '太累了', '想先停一下'];
+    return showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      constraints: const BoxConstraints(maxWidth: 560),
+      builder: (sheetContext) {
+        final surfaces = sheetContext.surfaces;
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(22, 12, 22, 26),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 38,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: surfaces.border,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                emergency ? '要结束学霸模式吗？' : '这一颗番茄，被什么打断啦？',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '选一个原因，落落记在小本本上；本次不会计入番茄记录。',
+                style: TextStyle(
+                  fontSize: 11.5,
+                  height: 1.5,
+                  color: surfaces.muted,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final reason in reasons)
+                    ActionChip(
+                      label: Text(reason),
+                      onPressed: () => Navigator.of(sheetContext).pop(reason),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => Navigator.of(sheetContext).pop(),
+                child: const Text('继续专注'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _showSounds() async {
@@ -298,7 +420,11 @@ class _SessionPageState extends State<SessionPage> with WidgetsBindingObserver {
       (controller) => controller.settings.companionEnabled,
     );
     final canPop = !strict || _completed || _allowPop;
-    final guardMissing = strict && !_guardEnabled && _immersive.supported;
+    final overlayOn = context.select<SettingsController, bool>(
+      (controller) => controller.settings.strictOverlay,
+    );
+    final guardMissing =
+        strict && overlayOn && !_guardEnabled && _immersive.supported;
     return PopScope(
       canPop: canPop,
       child: Scaffold(

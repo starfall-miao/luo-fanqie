@@ -7,6 +7,7 @@ import 'package:luo_fanqie_app/core/storage/key_value_storage.dart';
 import 'package:luo_fanqie_app/features/settings/models/app_settings.dart';
 import 'package:luo_fanqie_app/features/settings/providers/settings_controller.dart';
 import 'package:luo_fanqie_app/features/stats/models/focus_session.dart';
+import 'package:luo_fanqie_app/features/stats/models/interruption_event.dart';
 import 'package:luo_fanqie_app/features/stats/providers/stats_controller.dart';
 import 'package:luo_fanqie_app/features/tasks/models/task.dart';
 import 'package:luo_fanqie_app/features/tasks/providers/task_controller.dart';
@@ -222,6 +223,32 @@ void main() {
       final heatmap = stats.heatmap(weeks: 2);
       expect(heatmap, hasLength(14));
       expect(heatmap.last.date.weekday, DateTime.sunday);
+    });
+
+    test('记录打断原因并随清空记录一起清除', () {
+      final storage = MemoryStorage();
+      final stats = StatsController(storage, clock: () => fixedNow);
+      expect(
+        stats.recordInterruption(
+          InterruptionEvent(
+            id: 'interruption-1',
+            at: fixedNow,
+            reason: '分心走神',
+            elapsedMinutes: 8,
+          ),
+        ),
+        isTrue,
+      );
+      expect(stats.interruptions.single.reason, '分心走神');
+      expect(
+        stats.interruptionsBetween(
+          fixedNow.subtract(const Duration(days: 1)),
+          fixedNow.add(const Duration(days: 1)),
+        ),
+        hasLength(1),
+      );
+      stats.clearAll();
+      expect(stats.interruptions, isEmpty);
     });
 
     test('今天没有记录时，连续天数延续到昨天', () {

@@ -330,4 +330,25 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('统计支持日周月年切换', (tester) async {
+    await _pumpApp(tester);
+    await tester.tap(find.byIcon(Icons.insights_outlined));
+    await tester.pumpAndSettle();
+    expect(find.text('周统计表'), findsOneWidget);
+
+    await tester.tap(find.text('日').first);
+    await tester.pumpAndSettle();
+    expect(find.text('日统计表'), findsOneWidget);
+
+    await tester.tap(find.text('月').first);
+    await tester.pumpAndSettle();
+    expect(find.text('月统计表'), findsOneWidget);
+
+    await tester.tap(find.text('年').first);
+    await tester.pumpAndSettle();
+    expect(find.text('年统计表'), findsOneWidget);
+    expect(find.text('打断原因'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

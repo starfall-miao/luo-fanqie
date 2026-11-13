@@ -40,6 +40,8 @@ class _LuoLuoMascotState extends State<LuoLuoMascot>
     )..forward();
     _blinkTimer = Timer.periodic(const Duration(milliseconds: 5000), (_) {
       if (!mounted) return;
+      // 每隔一会儿轻轻呼吸、眨眼、甩一下尾巴，像真的趴在旁边。
+      _breath.forward(from: 0);
       setState(() => _blinking = true);
       _blinkCloseTimer?.cancel();
       _blinkCloseTimer = Timer(const Duration(milliseconds: 130), () {
@@ -97,8 +99,9 @@ class _LuoLuoPainter extends CustomPainter {
   final bool studying;
   final bool happy;
 
-  static const _hair = Color(0xFF6A493F);
-  static const _hairDeep = Color(0xFF53362F);
+  static const _hair = Color(0xFFB7B0BE);
+  static const _hairDeep = Color(0xFF857D8B);
+  static const _hairLight = Color(0xFFDCD7E2);
   static const _skin = Color(0xFFFFE5D3);
   static const _skinShade = Color(0xFFF5CBB8);
   static const _earInner = Color(0xFFF3A79E);
@@ -248,6 +251,13 @@ class _LuoLuoPainter extends CustomPainter {
       ),
       side,
     );
+    // 银灰猫猫的高光
+    final shine = Path()
+      ..moveTo(72, 58)
+      ..quadraticBezierTo(92, 38, 120, 47)
+      ..quadraticBezierTo(94, 50, 79, 66)
+      ..close();
+    canvas.drawPath(shine, Paint()..color = _hairLight.withValues(alpha: 0.55));
     // 番茄发夹
     canvas.drawCircle(
       const Offset(134, 64),
@@ -273,6 +283,18 @@ class _LuoLuoPainter extends CustomPainter {
       const Rect.fromLTWH(115, 100, 16, 7),
       Paint()..color = _earInner.withValues(alpha: 0.45),
     );
+    // 猫猫的小鼻子与胡须点
+    final nose = Path()
+      ..moveTo(96, 101)
+      ..lineTo(104, 101)
+      ..lineTo(100, 105)
+      ..close();
+    canvas.drawPath(nose, Paint()..color = _earInner.withValues(alpha: 0.9));
+    final whisker = Paint()..color = _hairDeep.withValues(alpha: 0.45);
+    canvas.drawCircle(const Offset(68, 105), 0.9, whisker);
+    canvas.drawCircle(const Offset(72, 108), 0.9, whisker);
+    canvas.drawCircle(const Offset(132, 105), 0.9, whisker);
+    canvas.drawCircle(const Offset(128, 108), 0.9, whisker);
     // 嘴巴
     final mouth = Path();
     if (happy) {

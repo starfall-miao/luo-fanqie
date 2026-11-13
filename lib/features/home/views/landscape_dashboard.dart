@@ -232,7 +232,6 @@ class _FocusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final surfaces = context.surfaces;
     final timer = context.watch<PomodoroController>();
     final task = timer.selectedTask;
     final dialSize = math.min(MediaQuery.sizeOf(context).width * 0.22, 272.0);
@@ -359,12 +358,6 @@ class _FocusCard extends StatelessWidget {
                 icon: const Icon(Icons.bolt_rounded, size: 17),
                 label: const Text('快速开始一颗番茄'),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '今日 ${stats.todaySessions} 颗 · ${stats.todayMinutes} 分钟',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 10, color: surfaces.faint),
             ),
           ],
         ),

@@ -65,6 +65,37 @@ class SettingsController extends ChangeNotifier {
   void setStrictMode(bool value) =>
       _apply(_settings.copyWith(strictMode: value));
 
+  void setStrictOverlay(bool value) =>
+      _apply(_settings.copyWith(strictOverlay: value));
+
+  void setStrictLockTask(bool value) =>
+      _apply(_settings.copyWith(strictLockTask: value));
+
+  void setStrictDnd(bool value) => _apply(_settings.copyWith(strictDnd: value));
+
+  int get strictExitsRemaining {
+    final monthKey = _monthKey(DateTime.now());
+    if (_settings.strictExitMonth != monthKey) return 3;
+    return (3 - _settings.strictExitUsed).clamp(0, 3);
+  }
+
+  void consumeStrictExit() {
+    final now = DateTime.now();
+    final monthKey = _monthKey(now);
+    final used = _settings.strictExitMonth == monthKey
+        ? _settings.strictExitUsed + 1
+        : 1;
+    _apply(
+      _settings.copyWith(
+        strictExitMonth: monthKey,
+        strictExitUsed: used.clamp(0, 3),
+      ),
+    );
+  }
+
+  static String _monthKey(DateTime date) =>
+      '${date.year}-${date.month.toString().padLeft(2, '0')}';
+
   void setGlassEffects(bool value) =>
       _apply(_settings.copyWith(glassEffects: value));
 

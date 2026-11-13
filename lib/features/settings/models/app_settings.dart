@@ -16,6 +16,11 @@ class AppSettings {
     this.hapticsEnabled = true,
     this.notificationsEnabled = true,
     this.strictMode = false,
+    this.strictOverlay = true,
+    this.strictLockTask = false,
+    this.strictDnd = false,
+    this.strictExitMonth = '',
+    this.strictExitUsed = 0,
     this.themeMode = AppThemeMode.system,
     this.glassEffects = false,
     this.companionEnabled = true,
@@ -32,6 +37,14 @@ class AppSettings {
   final bool hapticsEnabled;
   final bool notificationsEnabled;
   final bool strictMode;
+
+  /// 学霸模式拆分选项：切 App 全屏提醒、系统锁定任务、专注时勿扰。
+  final bool strictOverlay;
+  final bool strictLockTask;
+  final bool strictDnd;
+  final String strictExitMonth;
+  final int strictExitUsed;
+
   final AppThemeMode themeMode;
 
   /// 毛玻璃需要实时采样背景，低端设备容易掉帧；默认关闭。
@@ -86,6 +99,11 @@ class AppSettings {
       hapticsEnabled: json['hapticsEnabled'] as bool? ?? true,
       notificationsEnabled: json['notificationsEnabled'] as bool? ?? true,
       strictMode: json['strictMode'] as bool? ?? false,
+      strictOverlay: json['strictOverlay'] as bool? ?? true,
+      strictLockTask: json['strictLockTask'] as bool? ?? false,
+      strictDnd: json['strictDnd'] as bool? ?? false,
+      strictExitMonth: json['strictExitMonth'] as String? ?? '',
+      strictExitUsed: (json['strictExitUsed'] as num?)?.toInt() ?? 0,
       glassEffects: json['glassEffects'] as bool? ?? false,
       companionEnabled: json['companionEnabled'] as bool? ?? true,
       themeMode: AppThemeMode.values.firstWhere(
@@ -122,6 +140,11 @@ class AppSettings {
     'hapticsEnabled': hapticsEnabled,
     'notificationsEnabled': notificationsEnabled,
     'strictMode': strictMode,
+    'strictOverlay': strictOverlay,
+    'strictLockTask': strictLockTask,
+    'strictDnd': strictDnd,
+    'strictExitMonth': strictExitMonth,
+    'strictExitUsed': strictExitUsed,
     'glassEffects': glassEffects,
     'companionEnabled': companionEnabled,
     'themeMode': themeMode.name,
@@ -139,6 +162,11 @@ class AppSettings {
     bool? hapticsEnabled,
     bool? notificationsEnabled,
     bool? strictMode,
+    bool? strictOverlay,
+    bool? strictLockTask,
+    bool? strictDnd,
+    String? strictExitMonth,
+    int? strictExitUsed,
     bool? glassEffects,
     bool? companionEnabled,
     AppThemeMode? themeMode,
@@ -155,6 +183,11 @@ class AppSettings {
       hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       strictMode: strictMode ?? this.strictMode,
+      strictOverlay: strictOverlay ?? this.strictOverlay,
+      strictLockTask: strictLockTask ?? this.strictLockTask,
+      strictDnd: strictDnd ?? this.strictDnd,
+      strictExitMonth: strictExitMonth ?? this.strictExitMonth,
+      strictExitUsed: strictExitUsed ?? this.strictExitUsed,
       glassEffects: glassEffects ?? this.glassEffects,
       companionEnabled: companionEnabled ?? this.companionEnabled,
       themeMode: themeMode ?? this.themeMode,

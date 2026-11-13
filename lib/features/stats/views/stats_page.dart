@@ -10,12 +10,31 @@ import '../../../shared/widgets/soft_card.dart';
 import '../../../shared/widgets/tomato_mark.dart';
 import '../../settings/providers/settings_controller.dart';
 import '../../stats/models/focus_session.dart';
+import '../../stats/models/interruption_event.dart';
 import '../../stats/providers/stats_controller.dart';
 import 'widgets/focus_heatmap.dart';
 import 'widgets/weekly_chart.dart';
 
-class StatsPage extends StatelessWidget {
+enum _StatsRange { day, week, month, year }
+
+extension on _StatsRange {
+  String get label => switch (this) {
+    _StatsRange.day => '日',
+    _StatsRange.week => '周',
+    _StatsRange.month => '月',
+    _StatsRange.year => '年',
+  };
+}
+
+class StatsPage extends StatefulWidget {
   const StatsPage({super.key});
+
+  @override
+  State<StatsPage> createState() => _StatsPageState();
+}
+
+class _StatsPageState extends State<StatsPage> {
+  _StatsRange _range = _StatsRange.week;
 
   @override
   Widget build(BuildContext context) {
@@ -38,6 +57,16 @@ class StatsPage extends StatelessWidget {
         icon: Icons.calendar_month_rounded,
         label: '${now.month}月',
       ),
+    );
+    final rangeTabs = _RangeTabs(
+      selected: _range,
+      onChanged: (range) => setState(() => _range = range),
+    );
+    final periodTable = _PeriodTable(stats: stats, range: _range, now: now);
+    final interruptionCard = _InterruptionCard(
+      stats: stats,
+      range: _range,
+      now: now,
     );
     final hero = _TodayHero(
       minutes: stats.todayMinutes,
@@ -123,7 +152,11 @@ class StatsPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       header,
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
+                      rangeTabs,
+                      const SizedBox(height: 14),
+                      periodTable,
+                      const SizedBox(height: 14),
                       hero,
                       const SizedBox(height: 12),
                       strip,
@@ -133,6 +166,8 @@ class StatsPage extends StatelessWidget {
                       heatmapCard,
                       const SizedBox(height: 14),
                       recent,
+                      const SizedBox(height: 14),
+                      interruptionCard,
                       const SizedBox(height: 18),
                       quote,
                     ],
@@ -142,7 +177,11 @@ class StatsPage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     header,
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
+                    rangeTabs,
+                    const SizedBox(height: 14),
+                    periodTable,
+                    const SizedBox(height: 18),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -171,6 +210,8 @@ class StatsPage extends StatelessWidget {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 14),
+                    interruptionCard,
                     const SizedBox(height: 18),
                     quote,
                   ],
@@ -179,6 +220,381 @@ class StatsPage extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _RangeTabs extends StatelessWidget {
+  const _RangeTabs({required this.selected, required this.onChanged});
+
+  final _StatsRange selected;
+  final ValueChanged<_StatsRange> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final surfaces = context.surfaces;
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: surfaces.cardMuted.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: surfaces.border.withValues(alpha: 0.6)),
+      ),
+      child: Row(
+        children: [
+          for (final range in _StatsRange.values)
+            Expanded(
+              child: GestureDetector(
+                onTap: () => onChanged(range),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  padding: const EdgeInsets.symmetric(vertical: 9),
+                  decoration: BoxDecoration(
+                    color: selected == range
+                        ? scheme.primary
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    range.label,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: selected == range
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                      color: selected == range
+                          ? scheme.onPrimary
+                          : surfaces.muted,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RangeRow {
+  const _RangeRow({
+    required this.label,
+    required this.detail,
+    required this.sessions,
+    required this.minutes,
+  });
+
+  final String label;
+  final String detail;
+  final int sessions;
+  final int minutes;
+}
+
+class _PeriodTable extends StatelessWidget {
+  const _PeriodTable({
+    required this.stats,
+    required this.range,
+    required this.now,
+  });
+
+  final StatsController stats;
+  final _StatsRange range;
+  final DateTime now;
+
+  List<_RangeRow> _rows() {
+    switch (range) {
+      case _StatsRange.day:
+        final sessions = stats.sessionsOn(now);
+        if (sessions.isEmpty) {
+          return const [
+            _RangeRow(label: '今天', detail: '还没有专注记录', sessions: 0, minutes: 0),
+          ];
+        }
+        return [
+          for (final session in sessions)
+            _RangeRow(
+              label: clockLabel(session.endedAt),
+              detail: session.taskTitle,
+              sessions: 1,
+              minutes: session.minutes,
+            ),
+        ];
+      case _StatsRange.week:
+        const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+        final week = stats.currentWeek();
+        return [
+          for (var i = 0; i < week.length; i += 1)
+            _RangeRow(
+              label: weekdays[i],
+              detail: '${week[i].date.month}/${week[i].date.day}',
+              sessions: week[i].sessions,
+              minutes: week[i].minutes,
+            ),
+        ];
+      case _StatsRange.month:
+        final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+        final rows = <_RangeRow>[];
+        for (var startDay = 1; startDay <= daysInMonth; startDay += 7) {
+          final endDay = math.min(startDay + 6, daysInMonth);
+          final start = DateTime(now.year, now.month, startDay);
+          final end = DateTime(now.year, now.month, endDay + 1);
+          final sessions = stats.sessionsBetween(start, end);
+          rows.add(
+            _RangeRow(
+              label: startDay == endDay ? '$startDay日' : '$startDay–$endDay日',
+              detail: '${now.month}月第${rows.length + 1}周',
+              sessions: sessions.length,
+              minutes: sessions.fold<int>(0, (sum, s) => sum + s.minutes),
+            ),
+          );
+        }
+        return rows;
+      case _StatsRange.year:
+        return [
+          for (var month = 1; month <= 12; month += 1)
+            _RangeRow(
+              label: '$month月',
+              detail: '${now.year}',
+              sessions: stats
+                  .sessionsBetween(
+                    DateTime(now.year, month, 1),
+                    DateTime(now.year, month + 1, 1),
+                  )
+                  .length,
+              minutes: stats
+                  .sessionsBetween(
+                    DateTime(now.year, month, 1),
+                    DateTime(now.year, month + 1, 1),
+                  )
+                  .fold<int>(0, (sum, s) => sum + s.minutes),
+            ),
+        ];
+    }
+  }
+
+  String get _title => '${range.label}统计表';
+
+  String get _subtitle => switch (range) {
+    _StatsRange.day => '${now.month}月${now.day}日 · 今日专注',
+    _StatsRange.week => '本周一至周日',
+    _StatsRange.month => '${now.year}年${now.month}月 · 按周汇总',
+    _StatsRange.year => '${now.year}年 · 按月汇总',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final surfaces = context.surfaces;
+    final rows = _rows();
+    final totalSessions = rows.fold<int>(0, (sum, row) => sum + row.sessions);
+    final totalMinutes = rows.fold<int>(0, (sum, row) => sum + row.minutes);
+    return SoftCard(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+      radius: 26,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionTitle(
+            title: _title,
+            subtitle: _subtitle,
+            trailing: Text(
+              '$totalSessions 颗 · $totalMinutes 分钟',
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: context.primary,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _TableHeader('时段')),
+              SizedBox(width: 74, child: _TableHeader('番茄', alignEnd: true)),
+              SizedBox(width: 74, child: _TableHeader('分钟', alignEnd: true)),
+            ],
+          ),
+          const SizedBox(height: 5),
+          for (var i = 0; i < rows.length; i += 1) ...[
+            if (i > 0)
+              Divider(
+                height: 1,
+                color: surfaces.border.withValues(alpha: 0.38),
+              ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          rows[i].label,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: context.onSurface,
+                          ),
+                        ),
+                        if (rows[i].detail.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            rows[i].detail,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              color: surfaces.faint,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  SizedBox(
+                    width: 74,
+                    child: Text(
+                      '${rows[i].sessions}',
+                      textAlign: TextAlign.end,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: context.onSurface,
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 74,
+                    child: Text(
+                      '${rows[i].minutes}',
+                      textAlign: TextAlign.end,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: context.onSurface,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _TableHeader extends StatelessWidget {
+  const _TableHeader(this.label, {this.alignEnd = false});
+
+  final String label;
+  final bool alignEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      textAlign: alignEnd ? TextAlign.end : TextAlign.start,
+      style: TextStyle(
+        fontSize: 10.5,
+        letterSpacing: 0.4,
+        color: context.surfaces.faint,
+      ),
+    );
+  }
+}
+
+class _InterruptionCard extends StatelessWidget {
+  const _InterruptionCard({
+    required this.stats,
+    required this.range,
+    required this.now,
+  });
+
+  final StatsController stats;
+  final _StatsRange range;
+  final DateTime now;
+
+  (DateTime, DateTime) get _bounds {
+    final startOfToday = startOfDay(now);
+    return switch (range) {
+      _StatsRange.day => (startOfToday, addDays(startOfToday, 1)),
+      _StatsRange.week => (startOfWeek(now), addDays(startOfWeek(now), 7)),
+      _StatsRange.month => (
+        DateTime(now.year, now.month, 1),
+        DateTime(now.year, now.month + 1, 1),
+      ),
+      _StatsRange.year => (
+        DateTime(now.year, 1, 1),
+        DateTime(now.year + 1, 1, 1),
+      ),
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final surfaces = context.surfaces;
+    final (start, end) = _bounds;
+    final events = stats.interruptionsBetween(start, end);
+    final grouped = <String, List<InterruptionEvent>>{};
+    for (final event in events) {
+      grouped.putIfAbsent(event.reason, () => []).add(event);
+    }
+    final entries = grouped.entries.toList()
+      ..sort((a, b) => b.value.length.compareTo(a.value.length));
+    return SoftCard(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+      radius: 26,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionTitle(
+            title: '打断原因',
+            subtitle: '${range.label}统计 · 共 ${events.length} 次',
+            trailing: Icon(
+              Icons.pause_circle_outline_rounded,
+              size: 18,
+              color: surfaces.muted,
+            ),
+          ),
+          const SizedBox(height: 10),
+          if (entries.isEmpty)
+            Text(
+              '这段时间没有被主动打断，落落为你骄傲。',
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.5,
+                color: surfaces.faint,
+              ),
+            )
+          else
+            for (final entry in entries) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      entry.key,
+                      style: TextStyle(fontSize: 12, color: context.onSurface),
+                    ),
+                  ),
+                  Text(
+                    '${entry.value.length} 次',
+                    style: TextStyle(fontSize: 11, color: surfaces.muted),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              SoftProgressBar(
+                value: entry.value.length / events.length,
+                height: 5,
+                color: AppPalette.apricot,
+              ),
+              const SizedBox(height: 10),
+            ],
+        ],
       ),
     );
   }
