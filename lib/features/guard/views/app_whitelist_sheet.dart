@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/immersive/immersive_mode_service.dart';
+
 import '../../../core/theme/app_theme.dart';
 import '../../settings/providers/settings_controller.dart';
 import '../services/app_whitelist_service.dart';
@@ -187,41 +189,111 @@ class _AppWhitelistSheetState extends State<_AppWhitelistSheet> {
                         ),
                       );
                     }
-                    return ListView.builder(
-                      itemCount: visible.length,
-                      itemBuilder: (context, index) {
-                        final app = visible[index];
-                        final checked = _selected.contains(app.packageName);
-                        return CheckboxListTile(
-                          value: checked,
-                          onChanged: (value) {
-                            setState(() {
-                              if (value == true) {
-                                _selected.add(app.packageName);
-                              } else {
-                                _selected.remove(app.packageName);
-                              }
-                            });
-                          },
-                          dense: true,
-                          controlAffinity: ListTileControlAffinity.leading,
-                          title: Text(
-                            app.label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 13.5),
-                          ),
-                          subtitle: Text(
-                            app.packageName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: surfaces.faint,
+                    final suggestions = _query.isEmpty
+                        ? all
+                              .where(
+                                (app) =>
+                                    app.isEducation &&
+                                    !_selected.contains(app.packageName),
+                              )
+                              .take(6)
+                              .toList(growable: false)
+                        : const <InstalledApp>[];
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (suggestions.isNotEmpty) ...[
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+                            decoration: BoxDecoration(
+                              color: AppPalette.sage.withValues(alpha: 0.09),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '学习应用建议',
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppPalette.sage,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '按教育分类与关键词识别，已排除手机厂商自带应用。',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: surfaces.faint,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Wrap(
+                                  spacing: 6,
+                                  runSpacing: 4,
+                                  children: [
+                                    for (final app in suggestions)
+                                      ActionChip(
+                                        label: Text(app.label),
+                                        visualDensity: VisualDensity.compact,
+                                        onPressed: () {
+                                          setState(
+                                            () =>
+                                                _selected.add(app.packageName),
+                                          );
+                                        },
+                                      ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
-                        );
-                      },
+                          const SizedBox(height: 8),
+                        ],
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: visible.length,
+                            itemBuilder: (context, index) {
+                              final app = visible[index];
+                              final checked = _selected.contains(
+                                app.packageName,
+                              );
+                              return CheckboxListTile(
+                                value: checked,
+                                onChanged: (value) {
+                                  setState(() {
+                                    if (value == true) {
+                                      _selected.add(app.packageName);
+                                    } else {
+                                      _selected.remove(app.packageName);
+                                    }
+                                  });
+                                },
+                                dense: true,
+                                controlAffinity:
+                                    ListTileControlAffinity.leading,
+                                title: Text(
+                                  app.label,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 13.5),
+                                ),
+                                subtitle: Text(
+                                  app.packageName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: surfaces.faint,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
                     );
                   },
                 ),
@@ -291,6 +363,8 @@ class _WhitelistLauncherSheet extends StatelessWidget {
                   style: TextStyle(fontSize: 10, color: surfaces.faint),
                 ),
                 onTap: () async {
+                  // 白名单应用不应该被 screen pinning 拦在门外。
+                  await const ImmersiveModeService().stopLockTask();
                   final ok = await const AppWhitelistService().launchApp(
                     app.packageName,
                   );

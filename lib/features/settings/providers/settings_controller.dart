@@ -73,6 +73,9 @@ class SettingsController extends ChangeNotifier {
 
   void setStrictDnd(bool value) => _apply(_settings.copyWith(strictDnd: value));
 
+  void setStrictSnoozeNotifications(bool value) =>
+      _apply(_settings.copyWith(strictSnoozeNotifications: value));
+
   int get strictExitsRemaining {
     final monthKey = _monthKey(DateTime.now());
     if (_settings.strictExitMonth != monthKey) return 3;

@@ -105,6 +105,9 @@ class _SessionPageState extends State<SessionPage> with WidgetsBindingObserver {
   bool _finishing = false;
   bool _allowPop = false;
   bool _guardEnabled = false;
+  bool _graceActive = false;
+  DateTime? _graceUntil;
+  Timer? _graceTicker;
 
   @override
   void initState() {
@@ -115,10 +118,15 @@ class _SessionPageState extends State<SessionPage> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed &&
-        widget.strict &&
-        !_guardEnabled &&
-        !_completed) {
+    if (state != AppLifecycleState.resumed) return;
+    if (_graceActive) {
+      final until = _graceUntil;
+      if (until != null && !DateTime.now().isBefore(until)) {
+        _endGracePause();
+      }
+      return;
+    }
+    if (widget.strict && !_guardEnabled && !_completed) {
       unawaited(_startImmersive());
     }
   }
@@ -148,6 +156,9 @@ class _SessionPageState extends State<SessionPage> with WidgetsBindingObserver {
       await _immersive.startDnd();
     }
     final endAt = timer?.endAt;
+    if (settings.strictSnoozeNotifications && endAt != null) {
+      await _immersive.startNotificationGuard(endAt);
+    }
     if (!settings.strictOverlay ||
         timer == null ||
         endAt == null ||
@@ -176,8 +187,58 @@ class _SessionPageState extends State<SessionPage> with WidgetsBindingObserver {
       setState(() => _completed = true);
       // 自然结束：先释放通知静音与任务锁定，保留守护到点回跳的能力。
       unawaited(_immersive.stopDnd());
+      unawaited(_immersive.stopNotificationGuard());
       unawaited(_immersive.stopLockTask());
       unawaited(_immersive.clearKeepScreenOn());
+    }
+  }
+
+  Future<void> _pauseForGrace() async {
+    final timer = _timer;
+    if (timer == null ||
+        !widget.strict ||
+        _completed ||
+        _finishing ||
+        _graceActive) {
+      return;
+    }
+    HapticFeedback.mediumImpact();
+    timer.pause();
+    await _immersive.stopStrictGuard();
+    await _immersive.stopDnd();
+    await _immersive.stopNotificationGuard();
+    await _immersive.stopLockTask();
+    if (!mounted) return;
+    _graceTicker?.cancel();
+    setState(() {
+      _graceActive = true;
+      _guardEnabled = false;
+      _graceUntil = DateTime.now().add(const Duration(minutes: 3));
+    });
+    _graceTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+      final until = _graceUntil;
+      if (!mounted || until == null || DateTime.now().isBefore(until)) {
+        setState(() {});
+        return;
+      }
+      _endGracePause();
+    });
+  }
+
+  void _endGracePause() {
+    _graceTicker?.cancel();
+    _graceTicker = null;
+    if (!mounted) return;
+    setState(() {
+      _graceActive = false;
+      _graceUntil = null;
+    });
+    final timer = _timer;
+    if (timer != null && timer.isPaused && !_completed) {
+      timer.start(focusMinutes: timer.selectedTask?.focusMinutes);
+    }
+    if (widget.strict && !_completed) {
+      unawaited(_startImmersive());
     }
   }
 
@@ -426,10 +487,20 @@ class _SessionPageState extends State<SessionPage> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _graceTicker?.cancel();
     _timer?.removeListener(_handleTimer);
     unawaited(_soundscape?.stop() ?? Future<void>.value());
     unawaited(_immersive.leave());
     super.dispose();
+  }
+
+  String get _graceRemainingLabel {
+    final until = _graceUntil;
+    if (until == null) return '暂停中';
+    final seconds = until.difference(DateTime.now()).inSeconds.clamp(0, 180);
+    final minutes = seconds ~/ 60;
+    final rest = seconds % 60;
+    return '暂停中 ${minutes.toString().padLeft(2, '0')}:${rest.toString().padLeft(2, '0')}，落落会在结束后重新守护';
   }
 
   @override
@@ -531,6 +602,53 @@ class _SessionPageState extends State<SessionPage> with WidgetsBindingObserver {
                                 ),
                               ),
                             ),
+                          if (_graceActive)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Container(
+                                padding: const EdgeInsets.fromLTRB(
+                                  12,
+                                  10,
+                                  8,
+                                  10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppPalette.sage.withValues(
+                                    alpha: 0.14,
+                                  ),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.pause_circle_outline_rounded,
+                                      size: 16,
+                                      color: AppPalette.sage,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        _graceRemainingLabel,
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          height: 1.45,
+                                        ),
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: _endGracePause,
+                                      style: TextButton.styleFrom(
+                                        visualDensity: VisualDensity.compact,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                        ),
+                                      ),
+                                      child: const Text('回到专注'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           if (wide)
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.center,
@@ -554,6 +672,7 @@ class _SessionPageState extends State<SessionPage> with WidgetsBindingObserver {
                                     dialSize: dialSize,
                                     onPause: timer.toggle,
                                     onFinish: () => _finish(emergency: strict),
+                                    onGrace: _pauseForGrace,
                                     onMinimize: _minimize,
                                     onTools: _showTools,
                                   ),
@@ -576,6 +695,7 @@ class _SessionPageState extends State<SessionPage> with WidgetsBindingObserver {
                               dialSize: dialSize,
                               onPause: timer.toggle,
                               onFinish: () => _finish(emergency: strict),
+                              onGrace: _pauseForGrace,
                               onMinimize: _minimize,
                               onTools: _showTools,
                             ),
@@ -826,6 +946,7 @@ class _SessionCenter extends StatelessWidget {
     required this.onFinish,
     required this.onMinimize,
     required this.onTools,
+    required this.onGrace,
   });
 
   final PomodoroController timer;
@@ -836,6 +957,7 @@ class _SessionCenter extends StatelessWidget {
   final VoidCallback onFinish;
   final VoidCallback onMinimize;
   final VoidCallback onTools;
+  final VoidCallback onGrace;
 
   @override
   Widget build(BuildContext context) {
@@ -907,25 +1029,43 @@ class _SessionCenter extends StatelessWidget {
             ],
           )
         else
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 6,
+            runSpacing: 4,
             children: [
               OutlinedButton.icon(
                 onPressed: onTools,
-                icon: const Icon(Icons.grid_view_rounded, size: 16),
+                style: OutlinedButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                ),
+                icon: const Icon(Icons.grid_view_rounded, size: 15),
                 label: const Text('小工具'),
               ),
-              const SizedBox(width: 12),
+              TextButton.icon(
+                onPressed: onGrace,
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                icon: const Icon(Icons.pause_circle_outline_rounded, size: 15),
+                label: const Text('暂停 3 分钟'),
+              ),
               TextButton.icon(
                 onPressed: onFinish,
-                icon: const Icon(Icons.lock_open_rounded, size: 16),
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                icon: const Icon(Icons.lock_open_rounded, size: 15),
                 label: const Text('结束守护'),
               ),
             ],
           ),
         const SizedBox(height: 10),
         Text(
-          strict ? '保持专注，屏幕已固定' : '离开这个页面，计时也会继续',
+          strict ? '保持专注，落落在门口守着' : '离开这个页面，计时也会继续',
           style: TextStyle(fontSize: 10.5, color: surfaces.faint),
         ),
       ],

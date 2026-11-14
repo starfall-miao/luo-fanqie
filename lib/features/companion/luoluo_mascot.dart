@@ -110,6 +110,7 @@ class _LuoLuoPainter extends CustomPainter {
   static const _eyeWarm = Color(0xFFB9683F);
   static const _book = Color(0xFFFFFBF2);
   static const _bookLine = Color(0xFFD9B9A6);
+  static const _outline = Color(0xFF5C4A4A);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -121,6 +122,10 @@ class _LuoLuoPainter extends CustomPainter {
     canvas.scale(1.0, breathe);
     canvas.translate(0, -100);
 
+    canvas.drawOval(
+      const Rect.fromLTWH(48, 188, 104, 14),
+      Paint()..color = Colors.black.withValues(alpha: 0.06),
+    );
     _paintTail(canvas);
     _paintBody(canvas);
     _paintHead(canvas);
@@ -154,6 +159,22 @@ class _LuoLuoPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 8
         ..strokeCap = StrokeCap.round,
+    );
+    // 尾巴上的浅色环纹
+    final stripe = Paint()
+      ..color = _hairLight.withValues(alpha: 0.8)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 5
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(
+      Offset(166, 127 + sway * 0.2),
+      Offset(171, 134 + sway * 0.3),
+      stripe,
+    );
+    canvas.drawLine(
+      Offset(175, 114 + sway * 0.5),
+      Offset(179, 121 + sway * 0.5),
+      stripe,
     );
   }
 
@@ -209,7 +230,19 @@ class _LuoLuoPainter extends CustomPainter {
     // 后面的头发
     canvas.drawOval(
       const Rect.fromLTWH(55, 40, 90, 104),
-      Paint()..color = _hairDeep,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [_hairLight, _hairDeep],
+        ).createShader(const Rect.fromLTWH(55, 40, 90, 104)),
+    );
+    canvas.drawOval(
+      const Rect.fromLTWH(55, 40, 90, 104),
+      Paint()
+        ..color = _outline.withValues(alpha: 0.35)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.4,
     );
     // 耳朵
     _paintEar(canvas, const Offset(74, 55), -0.30);
@@ -218,6 +251,13 @@ class _LuoLuoPainter extends CustomPainter {
     canvas.drawOval(
       const Rect.fromLTWH(62, 53, 76, 78),
       Paint()..color = _skin,
+    );
+    canvas.drawOval(
+      const Rect.fromLTWH(62, 53, 76, 78),
+      Paint()
+        ..color = _outline.withValues(alpha: 0.28)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.3,
     );
     canvas.drawOval(
       const Rect.fromLTWH(68, 105, 64, 24),
@@ -289,11 +329,15 @@ class _LuoLuoPainter extends CustomPainter {
       ..lineTo(100, 105)
       ..close();
     canvas.drawPath(nose, Paint()..color = _earInner.withValues(alpha: 0.9));
-    final whisker = Paint()..color = _hairDeep.withValues(alpha: 0.45);
-    canvas.drawCircle(const Offset(68, 105), 0.9, whisker);
-    canvas.drawCircle(const Offset(72, 108), 0.9, whisker);
-    canvas.drawCircle(const Offset(132, 105), 0.9, whisker);
-    canvas.drawCircle(const Offset(128, 108), 0.9, whisker);
+    final whisker = Paint()
+      ..color = _hairDeep.withValues(alpha: 0.45)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.9
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(const Offset(62, 103), const Offset(73, 105), whisker);
+    canvas.drawLine(const Offset(62, 108), const Offset(73, 108), whisker);
+    canvas.drawLine(const Offset(138, 103), const Offset(127, 105), whisker);
+    canvas.drawLine(const Offset(138, 108), const Offset(127, 108), whisker);
     // 嘴巴
     final mouth = Path();
     if (happy) {
@@ -310,8 +354,9 @@ class _LuoLuoPainter extends CustomPainter {
       );
     } else {
       mouth
-        ..moveTo(96, 109)
-        ..quadraticBezierTo(100, 112, 104, 109);
+        ..moveTo(95, 108)
+        ..quadraticBezierTo(98, 112, 100, 108)
+        ..quadraticBezierTo(102, 112, 105, 108);
       canvas.drawPath(
         mouth,
         Paint()
@@ -374,6 +419,18 @@ class _LuoLuoPainter extends CustomPainter {
       center.translate(2.8, 4.2),
       1.1,
       Paint()..color = Colors.white.withValues(alpha: 0.7),
+    );
+    final lash = Paint()
+      ..color = _outline
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+    canvas.drawArc(
+      Rect.fromCenter(center: center.translate(0, -6.5), width: 15, height: 6),
+      math.pi * 1.05,
+      math.pi * 0.9,
+      false,
+      lash,
     );
   }
 

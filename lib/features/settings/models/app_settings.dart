@@ -19,6 +19,7 @@ class AppSettings {
     this.strictOverlay = true,
     this.strictLockTask = false,
     this.strictDnd = false,
+    this.strictSnoozeNotifications = false,
     this.strictExitMonth = '',
     this.strictExitUsed = 0,
     this.themeMode = AppThemeMode.system,
@@ -48,6 +49,7 @@ class AppSettings {
   final bool strictOverlay;
   final bool strictLockTask;
   final bool strictDnd;
+  final bool strictSnoozeNotifications;
   final String strictExitMonth;
   final int strictExitUsed;
 
@@ -119,6 +121,8 @@ class AppSettings {
       strictOverlay: json['strictOverlay'] as bool? ?? true,
       strictLockTask: json['strictLockTask'] as bool? ?? false,
       strictDnd: json['strictDnd'] as bool? ?? false,
+      strictSnoozeNotifications:
+          json['strictSnoozeNotifications'] as bool? ?? false,
       strictExitMonth: json['strictExitMonth'] as String? ?? '',
       strictExitUsed: (json['strictExitUsed'] as num?)?.toInt() ?? 0,
       glassEffects: json['glassEffects'] as bool? ?? false,
@@ -163,6 +167,7 @@ class AppSettings {
     'strictOverlay': strictOverlay,
     'strictLockTask': strictLockTask,
     'strictDnd': strictDnd,
+    'strictSnoozeNotifications': strictSnoozeNotifications,
     'strictExitMonth': strictExitMonth,
     'strictExitUsed': strictExitUsed,
     'glassEffects': glassEffects,
@@ -191,6 +196,7 @@ class AppSettings {
     bool? strictOverlay,
     bool? strictLockTask,
     bool? strictDnd,
+    bool? strictSnoozeNotifications,
     String? strictExitMonth,
     int? strictExitUsed,
     bool? glassEffects,
@@ -218,6 +224,8 @@ class AppSettings {
       strictOverlay: strictOverlay ?? this.strictOverlay,
       strictLockTask: strictLockTask ?? this.strictLockTask,
       strictDnd: strictDnd ?? this.strictDnd,
+      strictSnoozeNotifications:
+          strictSnoozeNotifications ?? this.strictSnoozeNotifications,
       strictExitMonth: strictExitMonth ?? this.strictExitMonth,
       strictExitUsed: strictExitUsed ?? this.strictExitUsed,
       glassEffects: glassEffects ?? this.glassEffects,

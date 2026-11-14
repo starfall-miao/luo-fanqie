@@ -24,6 +24,7 @@ class ImmersiveModeService {
     await _invoke<void>('stopStrictGuard');
     await _invoke<void>('stopLockTask');
     await _invoke<void>('stopDnd');
+    await _invoke<void>('stopNotificationGuard');
     await _invoke<void>('clearKeepScreenOn');
   }
 
@@ -55,6 +56,7 @@ class ImmersiveModeService {
   Future<void> stopDnd() async {
     if (!supported) return;
     await _invoke<void>('stopDnd');
+    await _invoke<void>('stopNotificationGuard');
   }
 
   /// 专注自然结束时使用：保留学霸守护的到点回跳，仅关闭常亮。
@@ -90,6 +92,28 @@ class ImmersiveModeService {
   Future<void> stopStrictGuard() async {
     if (!supported) return;
     await _invoke<void>('stopStrictGuard');
+  }
+
+  Future<bool> isNotificationListenerEnabled() async {
+    if (!supported) return false;
+    return await _invoke<bool>('isNotificationListenerEnabled') ?? false;
+  }
+
+  Future<void> openNotificationListenerSettings() async {
+    if (!supported) return;
+    await _invoke<void>('openNotificationListenerSettings');
+  }
+
+  Future<void> startNotificationGuard(DateTime endAt) async {
+    if (!supported) return;
+    await _invoke<void>('startNotificationGuard', <String, Object>{
+      'endAtMillis': endAt.millisecondsSinceEpoch,
+    });
+  }
+
+  Future<void> stopNotificationGuard() async {
+    if (!supported) return;
+    await _invoke<void>('stopNotificationGuard');
   }
 
   Future<T?> _invoke<T>(String method, [Map<String, Object>? args]) async {

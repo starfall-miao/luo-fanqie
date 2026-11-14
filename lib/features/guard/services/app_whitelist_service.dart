@@ -4,10 +4,15 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 class InstalledApp {
-  const InstalledApp({required this.label, required this.packageName});
+  const InstalledApp({
+    required this.label,
+    required this.packageName,
+    this.isEducation = false,
+  });
 
   final String label;
   final String packageName;
+  final bool isEducation;
 }
 
 /// 读取可启动应用列表。仅 Android；只用于用户手动维护白名单。

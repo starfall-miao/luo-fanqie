@@ -5,9 +5,12 @@ import android.app.ActivityManager
 import android.app.AppOpsManager
 import android.app.NotificationManager
 import android.app.usage.UsageStatsManager
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.net.Uri
+import android.os.PowerManager
 import android.provider.Settings
 import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
@@ -106,6 +109,144 @@ class MainActivity : FlutterActivity() {
                     } catch (error: Exception) {
                         result.error("unlock_task_failed", error.message, null)
                     }
+                }
+
+                "scheduleAutoLock" -> {
+                    val hour = call.argument<Number>("hour")?.toInt()
+                    val minute = call.argument<Number>("minute")?.toInt()
+                    if (hour == null || minute == null) {
+                        result.error("invalid_arguments", "hour/minute required", null)
+                    } else {
+                        AutoLockScheduler.schedule(this, hour, minute)
+                        result.success(null)
+                    }
+                }
+
+                "cancelAutoLock" -> {
+                    AutoLockScheduler.cancel(this)
+                    result.success(null)
+                }
+
+                "isIgnoringBatteryOptimizations" -> {
+                    val power = getSystemService(PowerManager::class.java)
+                    result.success(
+                        power?.isIgnoringBatteryOptimizations(packageName) == true,
+                    )
+                }
+
+                "requestIgnoreBatteryOptimizations" -> {
+                    try {
+                        val intent = Intent(
+                            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                            Uri.parse("package:$packageName"),
+                        )
+                        startActivity(intent)
+                        result.success(null)
+                    } catch (error: Exception) {
+                        result.error("battery_optimization_failed", error.message, null)
+                    }
+                }
+
+                "openAutostartSettings" -> {
+                    val intents = listOf(
+                        Intent().setComponent(
+                            ComponentName(
+                                "com.miui.securitycenter",
+                                "com.miui.permcenter.autostart.AutoStartManagementActivity",
+                            ),
+                        ),
+                        Intent().setComponent(
+                            ComponentName(
+                                "com.huawei.systemmanager",
+                                "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity",
+                            ),
+                        ),
+                        Intent().setComponent(
+                            ComponentName(
+                                "com.coloros.safecenter",
+                                "com.coloros.safecenter.permission.startup.StartupAppListActivity",
+                            ),
+                        ),
+                        Intent().setComponent(
+                            ComponentName(
+                                "com.vivo.permissionmanager",
+                                "com.vivo.permissionmanager.activity.BgStartUpManagerActivity",
+                            ),
+                        ),
+                        Intent().setComponent(
+                            ComponentName(
+                                "com.samsung.android.lool",
+                                "com.samsung.android.sm.ui.battery.BatteryActivity",
+                            ),
+                        ),
+                    )
+                    var launched = false
+                    for (intent in intents) {
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        try {
+                            startActivity(intent)
+                            launched = true
+                            break
+                        } catch (_: Exception) {
+                            // 尝试下一个厂商页面。
+                        }
+                    }
+                    if (!launched) {
+                        try {
+                            startActivity(
+                                Intent(
+                                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                    Uri.parse("package:$packageName"),
+                                ),
+                            )
+                        } catch (_: Exception) {
+                            // 设置页也无法打开时保持静默。
+                        }
+                    }
+                    result.success(null)
+                }
+
+                "isNotificationListenerEnabled" -> {
+                    val component = ComponentName(
+                        this,
+                        FocusNotificationGuardService::class.java,
+                    )
+                    val granted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                        getSystemService(NotificationManager::class.java)
+                            ?.isNotificationListenerAccessGranted(component) == true
+                    } else {
+                        val enabled = Settings.Secure.getString(
+                            contentResolver,
+                            "enabled_notification_listeners",
+                        ).orEmpty()
+                        enabled.contains(component.flattenToString()) ||
+                            enabled.contains(component.flattenToShortString())
+                    }
+                    result.success(granted)
+                }
+
+                "openNotificationListenerSettings" -> {
+                    try {
+                        startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                        result.success(null)
+                    } catch (error: Exception) {
+                        result.error("listener_settings_failed", error.message, null)
+                    }
+                }
+
+                "startNotificationGuard" -> {
+                    val endAtMillis = call.argument<Number>("endAtMillis")?.toLong()
+                    if (endAtMillis == null || endAtMillis <= System.currentTimeMillis()) {
+                        result.success(false)
+                    } else {
+                        FocusNotificationGuardService.start(this, endAtMillis)
+                        result.success(true)
+                    }
+                }
+
+                "stopNotificationGuard" -> {
+                    FocusNotificationGuardService.stop(this)
+                    result.success(null)
                 }
 
                 "isDndAccessGranted" -> {
@@ -304,10 +445,19 @@ class MainActivity : FlutterActivity() {
                                 continue
                             }
                             val label = info.loadLabel(packageManager).toString()
+                            val isVendorApp = VENDOR_PREFIXES.any {
+                                packageName.startsWith(it)
+                            }
+                            val isEducation = !isVendorApp &&
+                                EDUCATION_WORDS.any {
+                                    label.lowercase().contains(it) ||
+                                        packageName.lowercase().contains(it)
+                                }
                             apps.put(
                                 org.json.JSONObject()
                                     .put("packageName", packageName)
-                                    .put("label", label),
+                                    .put("label", label)
+                                    .put("education", isEducation),
                             )
                         }
                         result.success(apps.toString())
@@ -370,6 +520,27 @@ class MainActivity : FlutterActivity() {
         private const val DND_PREVIOUS = "previous_filter"
         private const val APP_CHANNEL = "dev.luofanqie/apps"
         private const val USAGE_CHANNEL = "dev.luofanqie/usage"
+
+        private val VENDOR_PREFIXES = listOf(
+            "com.android.",
+            "com.miui.",
+            "com.xiaomi.",
+            "com.huawei.",
+            "com.honor.",
+            "com.samsung.",
+            "com.oppo.",
+            "com.coloros.",
+            "com.vivo.",
+            "com.oneplus.",
+            "com.meizu.",
+            "com.lenovo.",
+        )
+
+        private val EDUCATION_WORDS = listOf(
+            "学习", "课程", "教育", "单词", "词典", "口语", "听力", "刷题",
+            "作业", "考试", "考研", "四六级", "anki", "quizlet", "duolingo",
+            "coursera", "khan", "udemy", "edx", "背单词", "网课",
+        )
         private const val IMMERSIVE_CHANNEL = "dev.luofanqie/immersive"
         private const val NOTIFICATION_PERMISSION_REQUEST = 7300
     }

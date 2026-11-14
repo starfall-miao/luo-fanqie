@@ -14,6 +14,7 @@ import '../../settings/providers/settings_controller.dart';
 import '../../stats/providers/stats_controller.dart';
 import '../../stats/services/app_usage_service.dart';
 import '../../sync/providers/sync_controller.dart';
+import '../../guard/services/auto_lock_service.dart';
 import '../../guard/views/app_whitelist_sheet.dart';
 import '../../sync/views/sync_settings_sheet.dart';
 import 'security_page.dart';
@@ -77,6 +78,38 @@ class SettingsPage extends StatelessWidget {
     if (go == true) await service.openDndAccessSettings();
   }
 
+  Future<void> _showAutoLockSetup(BuildContext context) async {
+    const service = AutoLockService();
+    final ignoring = await service.isIgnoringBatteryOptimizations();
+    if (!context.mounted) return;
+    final action = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('让锁机更准时'),
+        content: Text(
+          '自动锁机依赖系统闹钟。忽略电池优化可以减少应用被杀，自启动权限请在你的手机管家/系统设置里允许落·番茄。\n\n'
+          '当前电池优化：${ignoring ? '已忽略' : '未忽略'}。部分定制系统即使授权也可能拦截后台启动，这种情况下会尽量改为通知提醒。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop('autostart'),
+            child: const Text('自启动设置'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop('battery'),
+            child: const Text('忽略电池优化'),
+          ),
+        ],
+      ),
+    );
+    if (!context.mounted) return;
+    if (action == 'battery') {
+      await service.requestIgnoreBatteryOptimizations();
+    } else if (action == 'autostart') {
+      await service.openAutostartSettings();
+    }
+  }
+
   Future<void> _pickAutoLockTime(BuildContext context) async {
     final settingsController = context.read<SettingsController>();
     final current = settingsController.settings;
@@ -130,6 +163,33 @@ class SettingsPage extends StatelessWidget {
       ),
     );
     if (selected != null) settingsController.setAutoLockMinutes(selected);
+  }
+
+  Future<void> _ensureNotificationListener(BuildContext context) async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+    const service = ImmersiveModeService();
+    final enabled = await service.isNotificationListenerEnabled();
+    if (enabled || !context.mounted) return;
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('允许拦截并放回通知？'),
+        content: const Text(
+          '需要你在系统设置中授予「通知使用权」。专注期间收到的新通知会被系统 snooze 收起，专注结束后由系统放回；不读取通知内容，也不伪造通知。这是系统勿扰不可用时的兜底。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('稍后'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('去开启'),
+          ),
+        ],
+      ),
+    );
+    if (go == true) await service.openNotificationListenerSettings();
   }
 
   @override
@@ -367,6 +427,21 @@ class SettingsPage extends StatelessWidget {
                               },
                             ),
                             _RowDivider(),
+                            _SwitchRow(
+                              icon: Icons.visibility_off_outlined,
+                              title: '免打扰兜底',
+                              subtitle: '系统勿扰不可用时，用通知 snooze 拦截并放回',
+                              value: settings.strictSnoozeNotifications,
+                              onChanged: (value) async {
+                                settingsController.setStrictSnoozeNotifications(
+                                  value,
+                                );
+                                if (value) {
+                                  await _ensureNotificationListener(context);
+                                }
+                              },
+                            ),
+                            _RowDivider(),
                             _SettingRow(
                               icon: Icons.event_available_rounded,
                               title: '本月退出机会',
@@ -400,6 +475,14 @@ class SettingsPage extends StatelessWidget {
                                 subtitle: '自动锁机开始后持续的时间',
                                 value: '${settings.autoLockMinutes} 分钟',
                                 onTap: () => _pickAutoLockDuration(context),
+                              ),
+                              _RowDivider(),
+                              _SettingRow(
+                                icon: Icons.battery_saver_outlined,
+                                title: '后台准时准备',
+                                subtitle: '忽略电池优化并允许自启动，减少被系统限制',
+                                value: '',
+                                onTap: () => _showAutoLockSetup(context),
                               ),
                             ],
                             _RowDivider(),
@@ -643,11 +726,11 @@ class SettingsPage extends StatelessWidget {
                             icon: Icons.info_outline_rounded,
                             title: '版本',
                             subtitle: '落·番茄',
-                            value: '1.8.0',
+                            value: '1.9.0',
                             onTap: () => showLicensePage(
                               context: context,
                               applicationName: '落·番茄',
-                              applicationVersion: '1.8.0',
+                              applicationVersion: '1.9.0',
                               applicationLegalese: '把时间种成番茄。',
                             ),
                           ),

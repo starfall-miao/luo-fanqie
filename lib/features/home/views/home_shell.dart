@@ -11,6 +11,7 @@ import '../../../shared/widgets/common.dart';
 import '../../../shared/widgets/tomato_mark.dart';
 import '../../focus/views/focus_page.dart';
 import '../../focus/views/session_page.dart';
+import '../../guard/services/auto_lock_service.dart';
 import 'landscape_dashboard.dart';
 import '../../settings/providers/settings_controller.dart';
 import '../../settings/views/settings_page.dart';
@@ -40,6 +41,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   SyncController? _sync;
   SettingsController? _settings;
   Timer? _autoLockTimer;
+  bool _initialAutoLockChecked = false;
 
   @override
   void initState() {
@@ -64,6 +66,13 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       _sync = context.read<SyncController>();
     }
     _scheduleAutoLock();
+    _syncNativeAutoLock();
+    if (!_initialAutoLockChecked) {
+      _initialAutoLockChecked = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _checkAutoLock();
+      });
+    }
   }
 
   @override
@@ -86,6 +95,21 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
 
   void _onSettingsChanged() {
     _scheduleAutoLock();
+    _syncNativeAutoLock();
+  }
+
+  void _syncNativeAutoLock() {
+    final settings = _settings?.settings;
+    if (settings == null) return;
+    const service = AutoLockService();
+    if (settings.autoLockEnabled) {
+      service.schedule(
+        hour: settings.autoLockHour,
+        minute: settings.autoLockMinute,
+      );
+    } else {
+      service.cancel();
+    }
   }
 
   String _dayKey(DateTime date) =>
