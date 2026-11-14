@@ -197,14 +197,6 @@ class _TasksPageState extends State<TasksPage> {
                       onTap: () =>
                           setState(() => _filter = _TaskFilter.completed),
                     ),
-                    const Spacer(),
-                    Text(
-                      '长按多选',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        color: context.surfaces.faint,
-                      ),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -575,16 +567,20 @@ class _TaskTile extends StatelessWidget {
                     const SizedBox(height: 9),
                     Row(
                       children: [
-                        Text(
-                          task.isHabit
-                              ? '${task.scheduleLabel()} · ${task.periodLabel(DateTime.now())}'
-                              : '目标进度',
-                          style: TextStyle(
-                            fontSize: 10.5,
-                            color: surfaces.faint,
+                        Expanded(
+                          child: Text(
+                            task.isHabit
+                                ? '${task.scheduleLabel()} · ${task.periodLabel(DateTime.now())}'
+                                : '目标进度',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              color: surfaces.faint,
+                            ),
                           ),
                         ),
-                        const Spacer(),
+                        const SizedBox(width: 6),
                         Text(
                           task.progressLabel(DateTime.now()),
                           style: TextStyle(

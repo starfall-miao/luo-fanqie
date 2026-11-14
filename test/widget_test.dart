@@ -362,4 +362,60 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('横屏快速开始按钮文字不被裁切', (tester) async {
+    await _pumpApp(
+      tester,
+      logicalSize: const Size(1024, 768),
+      devicePixelRatio: 2,
+    );
+    final button = find.widgetWithText(FilledButton, '快速开始一颗番茄');
+    expect(button, findsOneWidget);
+    final text = find.text('快速开始一颗番茄');
+    final buttonRect = tester.getRect(button);
+    final textRect = tester.getRect(text);
+    expect(textRect.top, greaterThanOrEqualTo(buttonRect.top));
+    expect(textRect.bottom, lessThanOrEqualTo(buttonRect.bottom));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('横屏放大字体时卡片不溢出', (tester) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 1.2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await _pumpApp(
+      tester,
+      logicalSize: const Size(1280, 800),
+      devicePixelRatio: 2,
+    );
+    expect(find.text('快速开始一颗番茄'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('320 宽小屏主要页面不溢出', (tester) async {
+    await _pumpApp(
+      tester,
+      logicalSize: const Size(320, 640),
+      devicePixelRatio: 2,
+    );
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.byIcon(Icons.checklist_rounded));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.byIcon(Icons.insights_outlined));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.byIcon(Icons.person_outline_rounded));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('900 宽最小横屏仪表盘不溢出', (tester) async {
+    await _pumpApp(
+      tester,
+      logicalSize: const Size(900, 600),
+      devicePixelRatio: 2,
+    );
+    expect(find.text('快速开始一颗番茄'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }
