@@ -341,35 +341,6 @@ class _FocusCard extends StatelessWidget {
             const SizedBox(height: 12),
             _CompactTaskSelector(timer: timer, task: task),
             const SizedBox(height: 10),
-            FilledButton.tonalIcon(
-              onPressed: () async {
-                if (timer.isRunning) {
-                  timer.pause();
-                  return;
-                }
-                if (timer.isPaused) timer.reset();
-                timer.selectTask(null);
-                if (timer.phase != PomodoroPhase.focus) {
-                  timer.switchPhase(PomodoroPhase.focus);
-                }
-                await launchFocusSession(context, resetPaused: true);
-              },
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(42),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 9,
-                ),
-                visualDensity: VisualDensity.compact,
-                textStyle: const TextStyle(
-                  fontSize: 12.5,
-                  height: 1.25,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              icon: const Icon(Icons.bolt_rounded, size: 17),
-              label: const Text('快速开始一颗番茄'),
-            ),
           ],
         ),
       ),

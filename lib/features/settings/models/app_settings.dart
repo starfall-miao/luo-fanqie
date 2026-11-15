@@ -29,7 +29,7 @@ class AppSettings {
     this.autoLockEnabled = false,
     this.autoLockHour = 21,
     this.autoLockMinute = 0,
-    this.autoLockMinutes = 45,
+    this.autoLockMinutes = 480,
     this.autoLockLastDate = '',
   });
 

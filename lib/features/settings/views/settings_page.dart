@@ -20,8 +20,15 @@ import '../../sync/views/sync_settings_sheet.dart';
 import 'security_page.dart';
 import '../../tasks/providers/task_controller.dart';
 
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  bool _focusExpanded = false;
 
   Future<void> _ensureStrictGuard(BuildContext context) async {
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
@@ -146,7 +153,7 @@ class SettingsPage extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  for (final minutes in [25, 45, 60, 90, 120])
+                  for (final minutes in [30, 45, 60, 120, 240, 480, 600, 720])
                     ChoiceChip(
                       label: Text('$minutes 分钟'),
                       selected:
@@ -224,306 +231,324 @@ class SettingsPage extends StatelessWidget {
                       todayMinutes: stats.todayMinutes,
                     ),
                     const SizedBox(height: 20),
-                    const _SectionLabel(title: '专注节奏'),
-                    const SizedBox(height: 9),
-                    SoftCard(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      radius: 24,
-                      child: Column(
-                        children: [
-                          _SettingRow(
-                            icon: Icons.timer_rounded,
-                            title: '专注时长',
-                            subtitle: '一颗番茄有多久',
-                            value: '${settings.focusMinutes} 分钟',
-                            onTap: () async {
-                              final result = await _showNumberSheet(
-                                context,
-                                title: '专注时长',
-                                description: '让一颗番茄刚好装下一段注意力。',
-                                value: settings.focusMinutes,
-                                min: 5,
-                                max: 90,
-                                step: 5,
-                                unit: '分钟',
-                                presets: const [15, 25, 45, 60],
-                              );
-                              if (result != null) {
-                                settingsController.setFocusMinutes(result);
-                              }
-                            },
-                          ),
-                          _RowDivider(),
-                          _SettingRow(
-                            icon: Icons.coffee_rounded,
-                            title: '短休息',
-                            subtitle: '每颗番茄之间的小憩',
-                            value: '${settings.shortBreakMinutes} 分钟',
-                            onTap: () async {
-                              final result = await _showNumberSheet(
-                                context,
-                                title: '短休息',
-                                description: '起身伸个懒腰，让眼睛看看远处。',
-                                value: settings.shortBreakMinutes,
-                                min: 1,
-                                max: 30,
-                                step: 1,
-                                unit: '分钟',
-                                presets: const [3, 5, 10],
-                              );
-                              if (result != null) {
-                                settingsController.setShortBreakMinutes(result);
-                              }
-                            },
-                          ),
-                          _RowDivider(),
-                          _SettingRow(
-                            icon: Icons.nights_stay_rounded,
-                            title: '长休息',
-                            subtitle: '完成一组番茄后的奖励',
-                            value: '${settings.longBreakMinutes} 分钟',
-                            onTap: () async {
-                              final result = await _showNumberSheet(
-                                context,
-                                title: '长休息',
-                                description: '一组结束后，值得更从容的休息。',
-                                value: settings.longBreakMinutes,
-                                min: 5,
-                                max: 60,
-                                step: 5,
-                                unit: '分钟',
-                                presets: const [10, 15, 20, 30],
-                              );
-                              if (result != null) {
-                                settingsController.setLongBreakMinutes(result);
-                              }
-                            },
-                          ),
-                          _RowDivider(),
-                          _SettingRow(
-                            icon: Icons.all_inclusive_rounded,
-                            title: '长休息间隔',
-                            subtitle: '每完成几颗番茄进入长休息',
-                            value: '每 ${settings.roundsPerLongBreak} 颗',
-                            onTap: () async {
-                              final result = await _showNumberSheet(
-                                context,
-                                title: '长休息间隔',
-                                description: '一组番茄的数量，建议 3 到 5 颗。',
-                                value: settings.roundsPerLongBreak,
-                                min: 2,
-                                max: 8,
-                                step: 1,
-                                unit: '颗',
-                                presets: const [2, 3, 4, 5, 6],
-                              );
-                              if (result != null) {
-                                settingsController.setRoundsPerLongBreak(
-                                  result,
-                                );
-                              }
-                            },
-                          ),
-                          _RowDivider(),
-                          _SettingRow(
-                            icon: Icons.flag_rounded,
-                            title: '每日目标',
-                            subtitle: '今天想专注多久',
-                            value: '${settings.dailyGoalMinutes} 分钟',
-                            onTap: () async {
-                              final result = await _showNumberSheet(
-                                context,
-                                title: '每日目标',
-                                description: '一个够得着的目标，更容易被完成。',
-                                value: settings.dailyGoalMinutes,
-                                min: 30,
-                                max: 480,
-                                step: 30,
-                                unit: '分钟',
-                                presets: const [60, 90, 120, 180, 240],
-                              );
-                              if (result != null) {
-                                settingsController.setDailyGoalMinutes(result);
-                              }
-                            },
-                          ),
-                        ],
-                      ),
+                    _SettingRow(
+                      icon: Icons.tune_rounded,
+                      title: '专注增强',
+                      subtitle: '专注节奏、学霸模式、锁机、白名单与通知',
+                      value: _focusExpanded ? '收起' : '展开',
+                      onTap: () =>
+                          setState(() => _focusExpanded = !_focusExpanded),
                     ),
-                    const SizedBox(height: 20),
-                    const _SectionLabel(title: '自动化与提醒'),
-                    const SizedBox(height: 9),
-                    SoftCard(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      radius: 24,
-                      child: Column(
-                        children: [
-                          _SwitchRow(
-                            icon: Icons.play_circle_outline_rounded,
-                            title: '自动开始休息',
-                            subtitle: '专注结束后，小憩自动开始',
-                            value: settings.autoStartBreak,
-                            onChanged: settingsController.setAutoStartBreak,
-                          ),
-                          _RowDivider(),
-                          _SwitchRow(
-                            icon: Icons.autorenew_rounded,
-                            title: '自动开始下一颗',
-                            subtitle: '休息结束后，继续下一轮专注',
-                            value: settings.autoStartFocus,
-                            onChanged: settingsController.setAutoStartFocus,
-                          ),
-                          _RowDivider(),
-                          _SwitchRow(
-                            icon: Icons.notifications_active_outlined,
-                            title: '系统通知',
-                            subtitle: '结束计时后在通知栏提醒（Android）',
-                            value: settings.notificationsEnabled,
-                            onChanged:
-                                settingsController.setNotificationsEnabled,
-                          ),
-                          _RowDivider(),
-                          _SwitchRow(
-                            icon: Icons.shield_moon_outlined,
-                            title: '学霸模式',
-                            subtitle: '切换 App 时全屏提醒，计时结束自动回来（Android 无障碍守护）',
-                            value: settings.strictMode,
-                            onChanged: (value) async {
-                              settingsController.setStrictMode(value);
-                              if (value) await _ensureStrictGuard(context);
-                            },
-                          ),
-                          if (!kIsWeb &&
-                              defaultTargetPlatform ==
-                                  TargetPlatform.android) ...[
-                            _RowDivider(),
-                            _SwitchRow(
-                              icon: Icons.fullscreen_rounded,
-                              title: '置顶全屏提醒',
-                              subtitle: '离开应用时全屏提醒；需要无障碍守护',
-                              value: settings.strictOverlay,
-                              onChanged: (value) async {
-                                settingsController.setStrictOverlay(value);
-                                if (value) await _ensureStrictGuard(context);
-                              },
-                            ),
-                            _RowDivider(),
-                            _SwitchRow(
-                              icon: Icons.lock_outline_rounded,
-                              title: '锁定任务',
-                              subtitle: '禁止桌面与多任务，开始时会由系统确认',
-                              value: settings.strictLockTask,
-                              onChanged: settingsController.setStrictLockTask,
-                            ),
-                            _RowDivider(),
-                            _SwitchRow(
-                              icon: Icons.notifications_off_outlined,
-                              title: '专注时静音通知',
-                              subtitle: '开启系统勿扰，结束后恢复；不读取通知内容',
-                              value: settings.strictDnd,
-                              onChanged: (value) async {
-                                settingsController.setStrictDnd(value);
-                                if (value) await _ensureDnd(context);
-                              },
-                            ),
-                            _RowDivider(),
-                            _SwitchRow(
-                              icon: Icons.visibility_off_outlined,
-                              title: '免打扰兜底',
-                              subtitle: '系统勿扰不可用时，用通知 snooze 拦截并放回',
-                              value: settings.strictSnoozeNotifications,
-                              onChanged: (value) async {
-                                settingsController.setStrictSnoozeNotifications(
-                                  value,
+                    const SizedBox(height: 10),
+                    if (_focusExpanded) ...[
+                      const _SectionLabel(title: '专注节奏'),
+                      const SizedBox(height: 9),
+                      SoftCard(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        radius: 24,
+                        child: Column(
+                          children: [
+                            _SettingRow(
+                              icon: Icons.timer_rounded,
+                              title: '专注时长',
+                              subtitle: '一颗番茄有多久',
+                              value: '${settings.focusMinutes} 分钟',
+                              onTap: () async {
+                                final result = await _showNumberSheet(
+                                  context,
+                                  title: '专注时长',
+                                  description: '让一颗番茄刚好装下一段注意力。',
+                                  value: settings.focusMinutes,
+                                  min: 5,
+                                  max: 90,
+                                  step: 5,
+                                  unit: '分钟',
+                                  presets: const [15, 25, 45, 60],
                                 );
-                                if (value) {
-                                  await _ensureNotificationListener(context);
+                                if (result != null) {
+                                  settingsController.setFocusMinutes(result);
                                 }
                               },
                             ),
                             _RowDivider(),
                             _SettingRow(
-                              icon: Icons.event_available_rounded,
-                              title: '本月退出机会',
-                              subtitle: '提前结束严格专注会消耗一次，每月自动恢复三次',
-                              value:
-                                  '剩余 ${settingsController.strictExitsRemaining}/3',
-                              onTap: null,
+                              icon: Icons.coffee_rounded,
+                              title: '短休息',
+                              subtitle: '每颗番茄之间的小憩',
+                              value: '${settings.shortBreakMinutes} 分钟',
+                              onTap: () async {
+                                final result = await _showNumberSheet(
+                                  context,
+                                  title: '短休息',
+                                  description: '起身伸个懒腰，让眼睛看看远处。',
+                                  value: settings.shortBreakMinutes,
+                                  min: 1,
+                                  max: 30,
+                                  step: 1,
+                                  unit: '分钟',
+                                  presets: const [3, 5, 10],
+                                );
+                                if (result != null) {
+                                  settingsController.setShortBreakMinutes(
+                                    result,
+                                  );
+                                }
+                              },
+                            ),
+                            _RowDivider(),
+                            _SettingRow(
+                              icon: Icons.nights_stay_rounded,
+                              title: '长休息',
+                              subtitle: '完成一组番茄后的奖励',
+                              value: '${settings.longBreakMinutes} 分钟',
+                              onTap: () async {
+                                final result = await _showNumberSheet(
+                                  context,
+                                  title: '长休息',
+                                  description: '一组结束后，值得更从容的休息。',
+                                  value: settings.longBreakMinutes,
+                                  min: 5,
+                                  max: 60,
+                                  step: 5,
+                                  unit: '分钟',
+                                  presets: const [10, 15, 20, 30],
+                                );
+                                if (result != null) {
+                                  settingsController.setLongBreakMinutes(
+                                    result,
+                                  );
+                                }
+                              },
+                            ),
+                            _RowDivider(),
+                            _SettingRow(
+                              icon: Icons.all_inclusive_rounded,
+                              title: '长休息间隔',
+                              subtitle: '每完成几颗番茄进入长休息',
+                              value: '每 ${settings.roundsPerLongBreak} 颗',
+                              onTap: () async {
+                                final result = await _showNumberSheet(
+                                  context,
+                                  title: '长休息间隔',
+                                  description: '一组番茄的数量，建议 3 到 5 颗。',
+                                  value: settings.roundsPerLongBreak,
+                                  min: 2,
+                                  max: 8,
+                                  step: 1,
+                                  unit: '颗',
+                                  presets: const [2, 3, 4, 5, 6],
+                                );
+                                if (result != null) {
+                                  settingsController.setRoundsPerLongBreak(
+                                    result,
+                                  );
+                                }
+                              },
+                            ),
+                            _RowDivider(),
+                            _SettingRow(
+                              icon: Icons.flag_rounded,
+                              title: '每日目标',
+                              subtitle: '今天想专注多久',
+                              value: '${settings.dailyGoalMinutes} 分钟',
+                              onTap: () async {
+                                final result = await _showNumberSheet(
+                                  context,
+                                  title: '每日目标',
+                                  description: '一个够得着的目标，更容易被完成。',
+                                  value: settings.dailyGoalMinutes,
+                                  min: 30,
+                                  max: 480,
+                                  step: 30,
+                                  unit: '分钟',
+                                  presets: const [60, 90, 120, 180, 240],
+                                );
+                                if (result != null) {
+                                  settingsController.setDailyGoalMinutes(
+                                    result,
+                                  );
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      const _SectionLabel(title: '自动化与提醒'),
+                      const SizedBox(height: 9),
+                      SoftCard(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        radius: 24,
+                        child: Column(
+                          children: [
+                            _SwitchRow(
+                              icon: Icons.play_circle_outline_rounded,
+                              title: '自动开始休息',
+                              subtitle: '专注结束后，小憩自动开始',
+                              value: settings.autoStartBreak,
+                              onChanged: settingsController.setAutoStartBreak,
                             ),
                             _RowDivider(),
                             _SwitchRow(
-                              icon: Icons.schedule_rounded,
-                              title: '每日自动锁机',
-                              subtitle: '应用在前台到点自动开始；不在前台时需回来触发',
-                              value: settings.autoLockEnabled,
-                              onChanged: settingsController.setAutoLockEnabled,
+                              icon: Icons.autorenew_rounded,
+                              title: '自动开始下一颗',
+                              subtitle: '休息结束后，继续下一轮专注',
+                              value: settings.autoStartFocus,
+                              onChanged: settingsController.setAutoStartFocus,
                             ),
-                            if (settings.autoLockEnabled) ...[
+                            _RowDivider(),
+                            _SwitchRow(
+                              icon: Icons.notifications_active_outlined,
+                              title: '系统通知',
+                              subtitle: '结束计时后在通知栏提醒（Android）',
+                              value: settings.notificationsEnabled,
+                              onChanged:
+                                  settingsController.setNotificationsEnabled,
+                            ),
+                            _RowDivider(),
+                            _SwitchRow(
+                              icon: Icons.shield_moon_outlined,
+                              title: '学霸模式',
+                              subtitle: '切换 App 时全屏提醒，计时结束自动回来（Android 无障碍守护）',
+                              value: settings.strictMode,
+                              onChanged: (value) async {
+                                settingsController.setStrictMode(value);
+                                if (value) await _ensureStrictGuard(context);
+                              },
+                            ),
+                            if (!kIsWeb &&
+                                defaultTargetPlatform ==
+                                    TargetPlatform.android) ...[
+                              _RowDivider(),
+                              _SwitchRow(
+                                icon: Icons.fullscreen_rounded,
+                                title: '置顶全屏提醒',
+                                subtitle: '离开应用时全屏提醒；需要无障碍守护',
+                                value: settings.strictOverlay,
+                                onChanged: (value) async {
+                                  settingsController.setStrictOverlay(value);
+                                  if (value) await _ensureStrictGuard(context);
+                                },
+                              ),
+                              _RowDivider(),
+                              _SwitchRow(
+                                icon: Icons.lock_outline_rounded,
+                                title: '锁定任务',
+                                subtitle: '禁止桌面与多任务，开始时会由系统确认',
+                                value: settings.strictLockTask,
+                                onChanged: settingsController.setStrictLockTask,
+                              ),
+                              _RowDivider(),
+                              _SwitchRow(
+                                icon: Icons.notifications_off_outlined,
+                                title: '专注时静音通知',
+                                subtitle: '开启系统勿扰，结束后恢复；不读取通知内容',
+                                value: settings.strictDnd,
+                                onChanged: (value) async {
+                                  settingsController.setStrictDnd(value);
+                                  if (value) await _ensureDnd(context);
+                                },
+                              ),
+                              _RowDivider(),
+                              _SwitchRow(
+                                icon: Icons.visibility_off_outlined,
+                                title: '免打扰兜底',
+                                subtitle: '系统勿扰不可用时，用通知 snooze 拦截并放回',
+                                value: settings.strictSnoozeNotifications,
+                                onChanged: (value) async {
+                                  settingsController
+                                      .setStrictSnoozeNotifications(value);
+                                  if (value) {
+                                    await _ensureNotificationListener(context);
+                                  }
+                                },
+                              ),
                               _RowDivider(),
                               _SettingRow(
-                                icon: Icons.alarm_rounded,
-                                title: '锁机时间',
-                                subtitle: '每天这个时间自动开始严格专注',
+                                icon: Icons.event_available_rounded,
+                                title: '本月退出机会',
+                                subtitle: '提前结束严格专注会消耗一次，每月自动恢复三次',
                                 value:
-                                    '${settings.autoLockHour.toString().padLeft(2, '0')}:${settings.autoLockMinute.toString().padLeft(2, '0')}',
-                                onTap: () => _pickAutoLockTime(context),
+                                    '剩余 ${settingsController.strictExitsRemaining}/3',
+                                onTap: null,
+                              ),
+                              _RowDivider(),
+                              _SwitchRow(
+                                icon: Icons.schedule_rounded,
+                                title: '睡眠 / 重要时段锁机',
+                                subtitle: '到点进入锁机，直到设定时长结束；尽量用后台闹钟拉起',
+                                value: settings.autoLockEnabled,
+                                onChanged:
+                                    settingsController.setAutoLockEnabled,
+                              ),
+                              if (settings.autoLockEnabled) ...[
+                                _RowDivider(),
+                                _SettingRow(
+                                  icon: Icons.alarm_rounded,
+                                  title: '每天开始时间',
+                                  subtitle: '每天这个时间自动开始严格专注',
+                                  value:
+                                      '${settings.autoLockHour.toString().padLeft(2, '0')}:${settings.autoLockMinute.toString().padLeft(2, '0')}',
+                                  onTap: () => _pickAutoLockTime(context),
+                                ),
+                                _RowDivider(),
+                                _SettingRow(
+                                  icon: Icons.timelapse_rounded,
+                                  title: '锁机时长（可跨夜）',
+                                  subtitle: '自动锁机开始后持续的时间',
+                                  value: '${settings.autoLockMinutes} 分钟',
+                                  onTap: () => _pickAutoLockDuration(context),
+                                ),
+                                _RowDivider(),
+                                _SettingRow(
+                                  icon: Icons.battery_saver_outlined,
+                                  title: '后台准时准备',
+                                  subtitle: '忽略电池优化并允许自启动，减少被系统限制',
+                                  value: '',
+                                  onTap: () => _showAutoLockSetup(context),
+                                ),
+                              ],
+                              _RowDivider(),
+                              _SettingRow(
+                                icon: Icons.apps_rounded,
+                                title: '应用白名单',
+                                subtitle: '严格专注时允许打开的应用；为空则不允许其他 App',
+                                value: settings.whitelistPackages.isEmpty
+                                    ? '未设置'
+                                    : '${settings.whitelistPackages.length} 个',
+                                onTap: () => showAppWhitelistPicker(context),
                               ),
                               _RowDivider(),
                               _SettingRow(
-                                icon: Icons.timelapse_rounded,
-                                title: '锁机时长',
-                                subtitle: '自动锁机开始后持续的时间',
-                                value: '${settings.autoLockMinutes} 分钟',
-                                onTap: () => _pickAutoLockDuration(context),
-                              ),
-                              _RowDivider(),
-                              _SettingRow(
-                                icon: Icons.battery_saver_outlined,
-                                title: '后台准时准备',
-                                subtitle: '忽略电池优化并允许自启动，减少被系统限制',
+                                icon: Icons.accessibility_new_rounded,
+                                title: '学霸守护设置',
+                                subtitle: '打开系统无障碍设置，开启或关闭置顶守护',
                                 value: '',
-                                onTap: () => _showAutoLockSetup(context),
+                                onTap: () => const ImmersiveModeService()
+                                    .openAccessibilitySettings(),
                               ),
                             ],
                             _RowDivider(),
-                            _SettingRow(
-                              icon: Icons.apps_rounded,
-                              title: '应用白名单',
-                              subtitle: '严格专注时允许打开的应用；为空则不允许其他 App',
-                              value: settings.whitelistPackages.isEmpty
-                                  ? '未设置'
-                                  : '${settings.whitelistPackages.length} 个',
-                              onTap: () => showAppWhitelistPicker(context),
+                            _SwitchRow(
+                              icon: Icons.volume_up_outlined,
+                              title: '声音提醒',
+                              subtitle: '番茄完成时播放提示音',
+                              value: settings.soundEnabled,
+                              onChanged: settingsController.setSoundEnabled,
                             ),
                             _RowDivider(),
-                            _SettingRow(
-                              icon: Icons.accessibility_new_rounded,
-                              title: '学霸守护设置',
-                              subtitle: '打开系统无障碍设置，开启或关闭置顶守护',
-                              value: '',
-                              onTap: () => const ImmersiveModeService()
-                                  .openAccessibilitySettings(),
+                            _SwitchRow(
+                              icon: Icons.vibration_rounded,
+                              title: '震动反馈',
+                              subtitle: '完成番茄时轻轻震动一下',
+                              value: settings.hapticsEnabled,
+                              onChanged: settingsController.setHapticsEnabled,
                             ),
                           ],
-                          _RowDivider(),
-                          _SwitchRow(
-                            icon: Icons.volume_up_outlined,
-                            title: '声音提醒',
-                            subtitle: '番茄完成时播放提示音',
-                            value: settings.soundEnabled,
-                            onChanged: settingsController.setSoundEnabled,
-                          ),
-                          _RowDivider(),
-                          _SwitchRow(
-                            icon: Icons.vibration_rounded,
-                            title: '震动反馈',
-                            subtitle: '完成番茄时轻轻震动一下',
-                            value: settings.hapticsEnabled,
-                            onChanged: settingsController.setHapticsEnabled,
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 20),
+                    ],
                     const SizedBox(height: 20),
                     const _SectionLabel(title: '外观'),
                     const SizedBox(height: 9),
@@ -726,11 +751,11 @@ class SettingsPage extends StatelessWidget {
                             icon: Icons.info_outline_rounded,
                             title: '版本',
                             subtitle: '落·番茄',
-                            value: '1.9.1',
+                            value: '1.10.0',
                             onTap: () => showLicensePage(
                               context: context,
                               applicationName: '落·番茄',
-                              applicationVersion: '1.9.1',
+                              applicationVersion: '1.10.0',
                               applicationLegalese: '把时间种成番茄。',
                             ),
                           ),

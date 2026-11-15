@@ -120,7 +120,7 @@ void main() {
       try {
         await _prepare(tester, logicalSize: const Size(1280, 800));
         await _pumpApp(tester, _seedStorage());
-        await tester.tap(find.text('快速开始一颗番茄'));
+        await tester.tap(find.byTooltip('开始专注').first);
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 600));
         await expectLater(

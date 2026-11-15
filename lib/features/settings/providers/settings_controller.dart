@@ -120,7 +120,7 @@ class SettingsController extends ChangeNotifier {
   );
 
   void setAutoLockMinutes(int value) =>
-      _apply(_settings.copyWith(autoLockMinutes: value.clamp(5, 180)));
+      _apply(_settings.copyWith(autoLockMinutes: value.clamp(5, 720)));
 
   String _dayKey(DateTime date) =>
       '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';

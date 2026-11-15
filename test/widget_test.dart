@@ -123,7 +123,7 @@ void main() {
       devicePixelRatio: 2,
     );
     expect(find.textContaining('落落陪你种番茄'), findsWidgets);
-    expect(find.text('快速开始一颗番茄'), findsOneWidget);
+    expect(find.text('锁机专注'), findsOneWidget);
     expect(find.text('今日专注'), findsWidgets);
     expect(find.byIcon(Icons.checklist_rounded), findsNothing);
     expect(tester.takeException(), isNull);
@@ -133,7 +133,7 @@ void main() {
     expect(find.text('和落落一起，慢慢专注'), findsOneWidget);
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
-    expect(find.text('快速开始一颗番茄'), findsOneWidget);
+    expect(find.text('锁机专注'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -155,6 +155,10 @@ void main() {
     await _pumpApp(tester);
 
     await tester.tap(find.byIcon(Icons.person_outline_rounded));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('专注增强'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('专注增强'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('专注时长'));
     await tester.pumpAndSettle();
@@ -213,7 +217,7 @@ void main() {
       logicalSize: const Size(1024, 768),
       devicePixelRatio: 2,
     );
-    expect(find.text('快速开始一颗番茄'), findsOneWidget);
+    expect(find.text('锁机专注'), findsOneWidget);
     expect(find.text('待办'), findsWidgets);
     expect(find.byIcon(Icons.checklist_rounded), findsNothing);
     expect(tester.takeException(), isNull);
@@ -223,7 +227,7 @@ void main() {
     expect(find.text('和落落一起，慢慢专注'), findsOneWidget);
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
-    expect(find.text('快速开始一颗番茄'), findsOneWidget);
+    expect(find.text('锁机专注'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -363,22 +367,6 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('横屏快速开始按钮文字不被裁切', (tester) async {
-    await _pumpApp(
-      tester,
-      logicalSize: const Size(1024, 768),
-      devicePixelRatio: 2,
-    );
-    final button = find.widgetWithText(FilledButton, '快速开始一颗番茄');
-    expect(button, findsOneWidget);
-    final text = find.text('快速开始一颗番茄');
-    final buttonRect = tester.getRect(button);
-    final textRect = tester.getRect(text);
-    expect(textRect.top, greaterThanOrEqualTo(buttonRect.top));
-    expect(textRect.bottom, lessThanOrEqualTo(buttonRect.bottom));
-    expect(tester.takeException(), isNull);
-  });
-
   testWidgets('横屏放大字体时卡片不溢出', (tester) async {
     tester.platformDispatcher.textScaleFactorTestValue = 1.2;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
@@ -387,7 +375,7 @@ void main() {
       logicalSize: const Size(1280, 800),
       devicePixelRatio: 2,
     );
-    expect(find.text('快速开始一颗番茄'), findsOneWidget);
+    expect(find.text('锁机专注'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -415,7 +403,7 @@ void main() {
       logicalSize: const Size(900, 600),
       devicePixelRatio: 2,
     );
-    expect(find.text('快速开始一颗番茄'), findsOneWidget);
+    expect(find.text('锁机专注'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

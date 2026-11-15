@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -13,6 +14,7 @@ import '../../stats/models/focus_session.dart';
 import '../../stats/models/interruption_event.dart';
 import '../../stats/providers/stats_controller.dart';
 import '../../stats/services/app_usage_service.dart';
+import 'app_usage_sheet.dart';
 import 'widgets/focus_heatmap.dart';
 import 'widgets/weekly_chart.dart';
 
@@ -393,9 +395,18 @@ class _PeriodTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
+    final scheme = Theme.of(context).colorScheme;
     final rows = _rows();
     final totalSessions = rows.fold<int>(0, (sum, row) => sum + row.sessions);
     final totalMinutes = rows.fold<int>(0, (sum, row) => sum + row.minutes);
+    final maxMinutes = rows.fold<int>(
+      0,
+      (max, row) => math.max(max, row.minutes),
+    );
+    final maxY = maxMinutes <= 60
+        ? 60.0
+        : (maxMinutes * 1.25 / 30).ceil() * 30.0;
+    final labelStep = rows.length <= 6 ? 1 : (rows.length / 5).ceil();
     return SoftCard(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
       radius: 26,
@@ -404,7 +415,7 @@ class _PeriodTable extends StatelessWidget {
         children: [
           SectionTitle(
             title: _title,
-            subtitle: _subtitle,
+            subtitle: '$_subtitle · 折线',
             trailing: Text(
               '$totalSessions 颗 · $totalMinutes 分钟',
               style: TextStyle(
@@ -414,100 +425,152 @@ class _PeriodTable extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(child: _TableHeader('时段')),
-              SizedBox(width: 74, child: _TableHeader('番茄', alignEnd: true)),
-              SizedBox(width: 74, child: _TableHeader('分钟', alignEnd: true)),
-            ],
-          ),
-          const SizedBox(height: 5),
-          for (var i = 0; i < rows.length; i += 1) ...[
-            if (i > 0)
-              Divider(
-                height: 1,
-                color: surfaces.border.withValues(alpha: 0.38),
-              ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          rows[i].label,
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                            color: context.onSurface,
-                          ),
-                        ),
-                        if (rows[i].detail.isNotEmpty) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            rows[i].detail,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+          const SizedBox(height: 14),
+          SizedBox(
+            height: 188,
+            child: LineChart(
+              LineChartData(
+                minX: 0,
+                maxX: (rows.length - 1).clamp(1, 999).toDouble(),
+                minY: 0,
+                maxY: maxY,
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: maxY / 3,
+                  getDrawingHorizontalLine: (value) => FlLine(
+                    color: surfaces.border.withValues(alpha: 0.5),
+                    strokeWidth: 1,
+                    dashArray: const [4, 5],
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                titlesData: FlTitlesData(
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 30,
+                      interval: maxY / 3,
+                      getTitlesWidget: (value, meta) {
+                        if (value <= 0) return const SizedBox.shrink();
+                        return SideTitleWidget(
+                          meta: meta,
+                          space: 5,
+                          child: Text(
+                            '${value.toInt()}',
                             style: TextStyle(
-                              fontSize: 10.5,
+                              fontSize: 9.5,
                               color: surfaces.faint,
                             ),
                           ),
+                        );
+                      },
+                    ),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 24,
+                      interval: 1,
+                      getTitlesWidget: (value, meta) {
+                        final index = value.toInt();
+                        if (index < 0 || index >= rows.length) {
+                          return const SizedBox.shrink();
+                        }
+                        if (index % labelStep != 0 &&
+                            index != rows.length - 1) {
+                          return const SizedBox.shrink();
+                        }
+                        return SideTitleWidget(
+                          meta: meta,
+                          space: 8,
+                          child: Text(
+                            rows[index].label,
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              color: surfaces.muted,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                lineTouchData: LineTouchData(
+                  enabled: true,
+                  touchTooltipData: LineTouchTooltipData(
+                    getTooltipColor: (_) => const Color(0xFF2B1C19),
+                    tooltipBorderRadius: BorderRadius.circular(10),
+                    getTooltipItems: (spots) => [
+                      for (final spot in spots)
+                        LineTooltipItem(
+                          '${rows[spot.x.toInt()].label} · ${spot.y.toInt()} 分钟',
+                          const TextStyle(
+                            color: Color(0xFFFFF8F1),
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: [
+                      for (var i = 0; i < rows.length; i += 1)
+                        FlSpot(i.toDouble(), rows[i].minutes.toDouble()),
+                    ],
+                    isCurved: true,
+                    curveSmoothness: 0.3,
+                    preventCurveOverShooting: true,
+                    barWidth: 3,
+                    isStrokeCapRound: true,
+                    color: scheme.primary,
+                    dotData: FlDotData(
+                      show: rows.length <= 12,
+                      getDotPainter: (spot, percent, barData, index) =>
+                          FlDotCirclePainter(
+                            radius: 3,
+                            color: scheme.primary,
+                            strokeWidth: 2,
+                            strokeColor: surfaces.card,
+                          ),
+                    ),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          scheme.primary.withValues(alpha: 0.24),
+                          scheme.primary.withValues(alpha: 0.01),
                         ],
-                      ],
-                    ),
-                  ),
-                  SizedBox(
-                    width: 74,
-                    child: Text(
-                      '${rows[i].sessions}',
-                      textAlign: TextAlign.end,
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        color: context.onSurface,
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 74,
-                    child: Text(
-                      '${rows[i].minutes}',
-                      textAlign: TextAlign.end,
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: context.onSurface,
                       ),
                     ),
                   ),
                 ],
               ),
+              duration: const Duration(milliseconds: 380),
+              curve: Curves.easeOutCubic,
             ),
-          ],
+          ),
+          if (rows.every((row) => row.minutes == 0))
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Center(
+                child: Text(
+                  '这个周期还没有专注记录。',
+                  style: TextStyle(fontSize: 11, color: surfaces.faint),
+                ),
+              ),
+            ),
         ],
-      ),
-    );
-  }
-}
-
-class _TableHeader extends StatelessWidget {
-  const _TableHeader(this.label, {this.alignEnd = false});
-
-  final String label;
-  final bool alignEnd;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      label,
-      textAlign: alignEnd ? TextAlign.end : TextAlign.start,
-      style: TextStyle(
-        fontSize: 10.5,
-        letterSpacing: 0.4,
-        color: context.surfaces.faint,
       ),
     );
   }
@@ -689,15 +752,37 @@ class _AppUsageCardState extends State<_AppUsageCard> {
                 ? 'Android 系统使用情况 · ${widget.range.label}'
                 : '仅 Android 支持',
             trailing: _service.supported
-                ? IconButton(
-                    onPressed: _loadingAccess ? null : _loadAccess,
-                    tooltip: '刷新使用情况',
-                    visualDensity: VisualDensity.compact,
-                    icon: Icon(
-                      Icons.refresh_rounded,
-                      size: 18,
-                      color: surfaces.muted,
-                    ),
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_hasAccess == true)
+                        TextButton(
+                          onPressed: () {
+                            final (start, end) = _bounds;
+                            showAppUsageDetails(
+                              context,
+                              start: start,
+                              end: end,
+                              label: widget.range.label,
+                            );
+                          },
+                          style: TextButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                          ),
+                          child: const Text('全部应用'),
+                        ),
+                      IconButton(
+                        onPressed: _loadingAccess ? null : _loadAccess,
+                        tooltip: '刷新使用情况',
+                        visualDensity: VisualDensity.compact,
+                        icon: Icon(
+                          Icons.refresh_rounded,
+                          size: 18,
+                          color: surfaces.muted,
+                        ),
+                      ),
+                    ],
                   )
                 : null,
           ),

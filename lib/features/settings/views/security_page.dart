@@ -107,7 +107,8 @@ class SecurityPage extends StatelessWidget {
                         ),
                         _SecurityLine(
                           icon: Icons.visibility_off_outlined,
-                          text: '通知兜底：需要通知使用权；用系统 snooze 收起专注期间的新通知，结束放回，不读取内容。',
+                          text:
+                              '通知兜底：需要通知使用权；用系统 snooze 收起专注期间的新通知，结束放回，不读取内容。',
                         ),
                         _SecurityLine(
                           icon: Icons.wifi_off_rounded,

@@ -10,6 +10,7 @@ import '../../../shared/widgets/app_background.dart';
 import '../../../shared/widgets/common.dart';
 import '../../../shared/widgets/tomato_mark.dart';
 import '../../focus/views/focus_page.dart';
+import '../../focus/views/lock_session_page.dart';
 import '../../focus/views/session_page.dart';
 import '../../guard/services/auto_lock_service.dart';
 import 'landscape_dashboard.dart';
@@ -149,7 +150,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       _scheduleAutoLock();
       return;
     }
-    if (now.difference(due) > const Duration(minutes: 15)) {
+    final endAt = due.add(Duration(minutes: settings.autoLockMinutes));
+    if (!now.isBefore(endAt)) {
       settingsController.markAutoLockStarted(now);
       _scheduleAutoLock();
       return;
@@ -160,27 +162,23 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       _scheduleAutoLock();
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('自动锁机时间到，但当前已有专注在进行')));
+        ..showSnackBar(
+          const SnackBar(content: Text('锁机时间到，但当前已有专注在进行')),
+        );
       return;
     }
-    if (!(ModalRoute.of(context)?.isCurrent ?? true)) {
-      // 设置页/沉浸页打开时不强行切换，下一分钟再检查。
-      _autoLockTimer = Timer(const Duration(minutes: 1), _checkAutoLock);
+    if (LockSessionPage.active) {
+      _scheduleAutoLock();
       return;
     }
     settingsController.markAutoLockStarted(now);
     HapticFeedback.mediumImpact();
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(content: Text('自动锁机开始 · ${settings.autoLockMinutes} 分钟')),
-      );
     unawaited(
-      launchFocusSession(
+      openLockSession(
         context,
-        focusMinutes: settings.autoLockMinutes,
-        strictOverride: true,
-        resetPaused: true,
+        endAt: endAt,
+        minutes: settings.autoLockMinutes,
+        title: '睡眠 / 时段锁机',
       ),
     );
     _scheduleAutoLock();

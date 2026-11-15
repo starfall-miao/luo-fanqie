@@ -14,9 +14,9 @@ class ImmersiveModeService {
   bool get supported =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
-  Future<void> enter() async {
+  Future<void> enter({bool keepScreenOn = true}) async {
     if (!supported) return;
-    await _invoke<void>('keepScreenOn');
+    if (keepScreenOn) await _invoke<void>('keepScreenOn');
   }
 
   Future<void> leave() async {

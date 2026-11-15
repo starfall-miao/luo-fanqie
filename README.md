@@ -4,7 +4,7 @@
 
 <p>
   <img alt="status" src="https://img.shields.io/badge/status-beta-orange" />
-  <img alt="version" src="https://img.shields.io/badge/version-1.9.1--beta-f15b3d" />
+  <img alt="version" src="https://img.shields.io/badge/version-1.10.0--beta-f15b3d" />
   <img alt="flutter" src="https://img.shields.io/badge/Flutter-3.47.9-027DFD?logo=flutter" />
   <a href="https://github.com/starfall-miao/luo-fanqie/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/starfall-miao/luo-fanqie/actions/workflows/ci.yml/badge.svg" /></a>
   <a href="https://github.com/starfall-miao/luo-fanqie/releases"><img alt="beta release" src="https://img.shields.io/badge/release-beta-orange?logo=github" /></a>
@@ -19,7 +19,10 @@
 - 横屏 / 平板 / 电脑端取消标签栏，一页卡片仪表盘展示全部核心内容，并可打开完整统计。
 - 猫娘看板娘「落落」陪你专注，会眨眼、抱着书，也会说一些温柔的话。
 - 学霸模式拆成置顶提醒、锁定任务、静音通知、白名单、每月 3 次退出机会等可配置项。
-- 手动锁机：选择 25–120 分钟；每日自动锁机会通过系统闹钟尝试在后台把应用带回前台，需忽略电池优化和允许自启动。
+- 独立锁机页：可选择 25 分钟到 12 小时，适合睡眠/重要时段；到点锁机、每月 3 次出口、白名单、锁机中可提前打开手机。
+- 每日锁机计划通过系统闹钟尝试在后台把应用带回前台，需忽略电池优化和允许自启动。
+- 统计周期的表已换成折线图；应用使用可查看全部应用和单应用详情。
+- 横屏专注设置收进「专注增强」子栏，移除了快速开始番茄入口。
 - 严格专注中可点「暂停 3 分钟」临时解除守护，结束后自动恢复；也可选择提前结束。
 - 白名单支持识别学习类应用（教育关键词，排除手机厂商自带），启动时会先解除锁定任务。
 - 免打扰兜底：系统勿扰不可用时，可用通知 snooze 在专注期间收起通知，结束后由系统放回。
@@ -77,14 +80,13 @@
 
 **多选**：长按待办或点击右上角的「多选」进入选择模式，再批量完成或删除；点击圆圈只切换完成状态，不再通过滑动误删。
 
-**快速开始**：横屏仪表盘、待办列表和空状态都提供快速开始入口。普通番茄可以脱离具体任务直接开始；任务卡片的开始按钮会使用该任务自己的专注时长。
 
 **进度计算**：一次完成的专注按单位累计——分钟 / 小时累加专注分钟，次数与自定义单位每次 +1；习惯在每日 / 每周 / 每月周期切换时重置周期进度（保留历史专注记录）。
 
 ## 横屏：一页卡片，没有标签栏
 
 - 窗口宽度 ≥ 900 且横屏时自动进入 **Dashboard**，不再显示底部 Tab 或侧边栏。
-- 左栏：番茄计时、阶段切换、当前待办、快速开始。
+- 左栏：番茄计时、阶段切换、当前待办；锁机从快捷设置进入。
 - 中栏：可滚动的待办列表，按类型显示进度与一键开始。
 - 右栏：今日专注、在途目标与习惯、同步状态、主题快捷切换。
 - 设置通过右上角齿轮进入；任务编辑使用底部面板，不打断当前专注状态。
@@ -149,7 +151,7 @@ flutter build apk --release
 ### 测试
 
 ```bash
-flutter test          # 58 项单元 / 组件测试（截图测试默认跳过）
+flutter test          # 57 项单元 / 组件测试（截图测试默认跳过）
 dart analyze
 ```
 
@@ -208,7 +210,7 @@ android/ · ios/ · macos/ · windows/ · linux/ · web/
 - 完整权限申请逻辑、数据流向与已知边界见 [`SECURITY.md`](SECURITY.md)。
 - 学霸守护只在 Android 生效，且需要用户手动开启无障碍服务；iOS / 桌面只有应用内限制。
 - **不会实现**：阻止其他 App 启动、拦截所有系统通知、隐藏桌面图标、防卸载等依赖辅助功能 / 设备管理员 / 定制 ROM 的强制性能力。这与平台政策、用户安全与“可退出”原则冲突。
-- 当前未完成：关机状态下的自动锁机；不同 ROM 对后台启动限制不同，自动锁机会尽量用通知兜底。iOS 本地通知、更多主题、桌面小组件、更多环境音也在后续计划。
+- 当前未完成：关机状态下的自动锁机；不同 ROM 对后台启动限制不同。B 站音频精选与网络天气图片因版权/网络隐私边界尚未接入；将在用户提供授权音源或采用 CC0/自有资源时实现离线缓存。iOS 通知等仍在后续计划。
 
 ## Roadmap
 
@@ -218,7 +220,7 @@ android/ · ios/ · macos/ · windows/ · linux/ · web/
 - [x] 用户自建文件服务器同步（WebDAV / Alist / FTP）、Android 通知、六端 Actions Beta
 - [x] 白噪音与背景音（雨声 / 海浪 / 篝火，本地音频）
 - [x] 落落猫娘看板娘、多选待办、横屏完整统计、可选毛玻璃
-- [x] 日/周/月/年统计表、打断原因统计、学霸守护拆分选项、应用白名单、手动/自动锁机、3 分钟暂停与通知兜底
+- [x] 日/周/月/年折线图、打断原因统计、学霸守护拆分选项、应用白名单、独立锁机、3 分钟暂停与通知兜底
 - [ ] 更完整的习惯打卡日历与目标复盘
 - [ ] iOS 本地通知、桌面通知
 - [ ] 更多主题与小组件
@@ -229,4 +231,4 @@ android/ · ios/ · macos/ · windows/ · linux/ · web/
 - 截图字体：[Noto Sans CJK SC](https://github.com/notofonts/noto-cjk)（SIL Open Font License，已附带许可证）
 - [fl_chart](https://github.com/imaNNeo/fl_chart)、[provider](https://pub.dev/packages/provider)、[shared_preferences](https://pub.dev/packages/shared_preferences)、[http](https://pub.dev/packages/http)
 
-<sub>当前版本：1.9.1 · Beta · 先定待办，再定时间。</sub>
+<sub>当前版本：1.10.0 · Beta · 先定待办，再定时间。</sub>
