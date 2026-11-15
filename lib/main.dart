@@ -58,7 +58,7 @@ class _LuoFanqieBootstrapState extends State<LuoFanqieBootstrap> {
       storage: widget.storage,
       clock: widget.clock,
     );
-    _soundscape = SoundscapeController();
+    _soundscape = SoundscapeController(widget.storage);
     _weather = WeatherController(storage: widget.storage, settings: _settings);
   }
 

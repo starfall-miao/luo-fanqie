@@ -1174,6 +1174,68 @@ class _ToolRow extends StatelessWidget {
   }
 }
 
+Future<void> _addCustomSound(
+  BuildContext context,
+  SoundscapeController controller,
+) async {
+  final nameController = TextEditingController();
+  final urlController = TextEditingController();
+  final result = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('添加自定义音频'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: nameController,
+            decoration: const InputDecoration(hintText: '名字，例如：雨夜电台'),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: urlController,
+            keyboardType: TextInputType.url,
+            decoration: const InputDecoration(hintText: 'http(s) 音频直链'),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            '音频会下载到本机离线缓存。只添加你有权使用的音源。',
+            style: TextStyle(
+              fontSize: 10.5,
+              color: Theme.of(dialogContext).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          child: const Text('下载'),
+        ),
+      ],
+    ),
+  );
+  if (result != true || !context.mounted) {
+    nameController.dispose();
+    urlController.dispose();
+    return;
+  }
+  final error = await controller.addCustomFromUrl(
+    name: nameController.text,
+    url: urlController.text,
+  );
+  nameController.dispose();
+  urlController.dispose();
+  if (!context.mounted) return;
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(error ?? '已添加并缓存自定义音频')));
+}
+
 class _SoundscapeSheet extends StatelessWidget {
   const _SoundscapeSheet();
 
@@ -1202,7 +1264,7 @@ class _SoundscapeSheet extends StatelessWidget {
           Text('环境音', style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 5),
           Text(
-            '全部音频随应用打包，不依赖网络，也不会上传任何信息。',
+            '内置音频随应用打包；自定义音频会下载并缓存在本机。请只使用你有权使用的直链，应用不会抓取 B 站。',
             style: TextStyle(fontSize: 11, color: surfaces.faint),
           ),
           const SizedBox(height: 18),
@@ -1275,7 +1337,54 @@ class _SoundscapeSheet extends StatelessWidget {
               Icon(Icons.volume_up_rounded, size: 17, color: surfaces.faint),
             ],
           ),
-          if (sound.active != null)
+          if (sound.customSupported) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Text(
+                  '自定义音频',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: surfaces.muted,
+                  ),
+                ),
+                const Spacer(),
+                TextButton.icon(
+                  onPressed: sound.loadingCustom
+                      ? null
+                      : () => _addCustomSound(context, sound),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                  icon: const Icon(Icons.add_rounded, size: 16),
+                  label: const Text('添加'),
+                ),
+              ],
+            ),
+            if (sound.customSounds.isEmpty)
+              Text(
+                '还没有自定义音频。支持 mp3 / wav / ogg 等直链。',
+                style: TextStyle(fontSize: 10.5, color: surfaces.faint),
+              )
+            else
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final custom in sound.customSounds)
+                    InputChip(
+                      label: Text(custom.name),
+                      selected: sound.activeCustomId == custom.id,
+                      onPressed: () => sound.toggleCustom(custom),
+                      onDeleted: () => sound.removeCustom(custom),
+                      deleteIcon: const Icon(Icons.close_rounded, size: 14),
+                    ),
+                ],
+              ),
+          ],
+          if (sound.active != null || sound.activeCustomId != null)
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
