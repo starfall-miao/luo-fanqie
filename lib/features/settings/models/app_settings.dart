@@ -31,6 +31,8 @@ class AppSettings {
     this.autoLockMinute = 0,
     this.autoLockMinutes = 480,
     this.autoLockLastDate = '',
+    this.weatherBackgroundEnabled = false,
+    this.weatherCity = '上海',
   });
 
   final int focusMinutes;
@@ -71,6 +73,10 @@ class AppSettings {
   final int autoLockMinute;
   final int autoLockMinutes;
   final String autoLockLastDate;
+
+  /// 专注页天气背景；只用用户选择的城市，不申请定位。
+  final bool weatherBackgroundEnabled;
+  final String weatherCity;
 
   static const defaults = AppSettings();
 
@@ -178,6 +184,8 @@ class AppSettings {
     'autoLockMinute': autoLockMinute,
     'autoLockMinutes': autoLockMinutes,
     'autoLockLastDate': autoLockLastDate,
+    'weatherBackgroundEnabled': weatherBackgroundEnabled,
+    'weatherCity': weatherCity,
     'themeMode': themeMode.name,
   };
 
@@ -207,6 +215,8 @@ class AppSettings {
     int? autoLockMinute,
     int? autoLockMinutes,
     String? autoLockLastDate,
+    bool? weatherBackgroundEnabled,
+    String? weatherCity,
     AppThemeMode? themeMode,
   }) {
     return AppSettings(
@@ -236,6 +246,9 @@ class AppSettings {
       autoLockMinute: autoLockMinute ?? this.autoLockMinute,
       autoLockMinutes: autoLockMinutes ?? this.autoLockMinutes,
       autoLockLastDate: autoLockLastDate ?? this.autoLockLastDate,
+      weatherBackgroundEnabled:
+          weatherBackgroundEnabled ?? this.weatherBackgroundEnabled,
+      weatherCity: weatherCity ?? this.weatherCity,
       themeMode: themeMode ?? this.themeMode,
     );
   }

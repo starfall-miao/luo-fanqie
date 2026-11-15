@@ -10,6 +10,7 @@ import 'features/stats/providers/stats_controller.dart';
 import 'features/sync/providers/sync_controller.dart';
 import 'features/tasks/providers/task_controller.dart';
 import 'features/timer/providers/pomodoro_controller.dart';
+import 'features/weather/providers/weather_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,6 +36,7 @@ class _LuoFanqieBootstrapState extends State<LuoFanqieBootstrap> {
   late final PomodoroController _timer;
   late final SyncController _sync;
   late final SoundscapeController _soundscape;
+  late final WeatherController _weather;
 
   @override
   void initState() {
@@ -57,10 +59,12 @@ class _LuoFanqieBootstrapState extends State<LuoFanqieBootstrap> {
       clock: widget.clock,
     );
     _soundscape = SoundscapeController();
+    _weather = WeatherController(storage: widget.storage, settings: _settings);
   }
 
   @override
   void dispose() {
+    _weather.dispose();
     _soundscape.dispose();
     _sync.dispose();
     _timer.dispose();
@@ -80,6 +84,7 @@ class _LuoFanqieBootstrapState extends State<LuoFanqieBootstrap> {
         ChangeNotifierProvider.value(value: _timer),
         ChangeNotifierProvider.value(value: _sync),
         ChangeNotifierProvider.value(value: _soundscape),
+        ChangeNotifierProvider.value(value: _weather),
       ],
       child: const LuoFanqieApp(),
     );

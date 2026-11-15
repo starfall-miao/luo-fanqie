@@ -4,7 +4,7 @@
 
 <p>
   <img alt="status" src="https://img.shields.io/badge/status-beta-orange" />
-  <img alt="version" src="https://img.shields.io/badge/version-1.10.0--beta-f15b3d" />
+  <img alt="version" src="https://img.shields.io/badge/version-1.11.0--beta-f15b3d" />
   <img alt="flutter" src="https://img.shields.io/badge/Flutter-3.47.9-027DFD?logo=flutter" />
   <a href="https://github.com/starfall-miao/luo-fanqie/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/starfall-miao/luo-fanqie/actions/workflows/ci.yml/badge.svg" /></a>
   <a href="https://github.com/starfall-miao/luo-fanqie/releases"><img alt="beta release" src="https://img.shields.io/badge/release-beta-orange?logo=github" /></a>
@@ -22,6 +22,7 @@
 - 独立锁机页：可选择 25 分钟到 12 小时，适合睡眠/重要时段；到点锁机、每月 3 次出口、白名单、锁机中可提前打开手机。
 - 每日锁机计划通过系统闹钟尝试在后台把应用带回前台，需忽略电池优化和允许自启动。
 - 统计周期的表已换成折线图；应用使用可查看全部应用和单应用详情。
+- 可开启天气背景：选择城市后从 Open-Meteo 获取天气，用本地绘制场景展示，缓存可离线；不申请定位。
 - 横屏专注设置收进「专注增强」子栏，移除了快速开始番茄入口。
 - 严格专注中可点「暂停 3 分钟」临时解除守护，结束后自动恢复；也可选择提前结束。
 - 白名单支持识别学习类应用（教育关键词，排除手机厂商自带），启动时会先解除锁定任务。
@@ -210,7 +211,7 @@ android/ · ios/ · macos/ · windows/ · linux/ · web/
 - 完整权限申请逻辑、数据流向与已知边界见 [`SECURITY.md`](SECURITY.md)。
 - 学霸守护只在 Android 生效，且需要用户手动开启无障碍服务；iOS / 桌面只有应用内限制。
 - **不会实现**：阻止其他 App 启动、拦截所有系统通知、隐藏桌面图标、防卸载等依赖辅助功能 / 设备管理员 / 定制 ROM 的强制性能力。这与平台政策、用户安全与“可退出”原则冲突。
-- 当前未完成：关机状态下的自动锁机；不同 ROM 对后台启动限制不同。B 站音频精选与网络天气图片因版权/网络隐私边界尚未接入；将在用户提供授权音源或采用 CC0/自有资源时实现离线缓存。iOS 通知等仍在后续计划。
+- 当前未完成：关机状态下的自动锁机；B 站音频精选与网络天气照片因版权未接入。天气背景目前用本地绘制场景，不是网络照片；自定义音频导入仍需先确定授权音源。iOS 通知等仍在后续计划。
 
 ## Roadmap
 
@@ -231,4 +232,4 @@ android/ · ios/ · macos/ · windows/ · linux/ · web/
 - 截图字体：[Noto Sans CJK SC](https://github.com/notofonts/noto-cjk)（SIL Open Font License，已附带许可证）
 - [fl_chart](https://github.com/imaNNeo/fl_chart)、[provider](https://pub.dev/packages/provider)、[shared_preferences](https://pub.dev/packages/shared_preferences)、[http](https://pub.dev/packages/http)
 
-<sub>当前版本：1.10.0 · Beta · 先定待办，再定时间。</sub>
+<sub>当前版本：1.11.0 · Beta · 先定待办，再定时间。</sub>

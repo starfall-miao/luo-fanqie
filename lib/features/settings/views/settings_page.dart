@@ -15,6 +15,7 @@ import '../../stats/providers/stats_controller.dart';
 import '../../stats/services/app_usage_service.dart';
 import '../../sync/providers/sync_controller.dart';
 import '../../guard/services/auto_lock_service.dart';
+import '../../weather/models/weather_snapshot.dart';
 import '../../guard/views/app_whitelist_sheet.dart';
 import '../../sync/views/sync_settings_sheet.dart';
 import 'security_page.dart';
@@ -83,6 +84,59 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     );
     if (go == true) await service.openDndAccessSettings();
+  }
+
+  Future<void> _pickWeatherCity(BuildContext context) async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      constraints: const BoxConstraints(maxWidth: 560),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(22, 18, 22, 26),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '天气城市',
+                style: Theme.of(sheetContext).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '天气数据来自 Open-Meteo；只用于生成背景，不上传你的数据。',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: sheetContext.surfaces.muted,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final city in weatherCities)
+                    ChoiceChip(
+                      label: Text(city.name),
+                      selected:
+                          context
+                              .read<SettingsController>()
+                              .settings
+                              .weatherCity ==
+                          city.name,
+                      onSelected: (_) =>
+                          Navigator.of(sheetContext).pop(city.name),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (!context.mounted || selected == null) return;
+    context.read<SettingsController>().setWeatherCity(selected);
   }
 
   Future<void> _showAutoLockSetup(BuildContext context) async {
@@ -590,6 +644,25 @@ class _SettingsPageState extends State<SettingsPage> {
                             value: settings.companionEnabled,
                             onChanged: settingsController.setCompanionEnabled,
                           ),
+                          _RowDivider(),
+                          _SwitchRow(
+                            icon: Icons.cloud_outlined,
+                            title: '天气背景',
+                            subtitle: '根据所选城市天气改变专注背景；缓存可离线',
+                            value: settings.weatherBackgroundEnabled,
+                            onChanged:
+                                settingsController.setWeatherBackgroundEnabled,
+                          ),
+                          if (settings.weatherBackgroundEnabled) ...[
+                            _RowDivider(),
+                            _SettingRow(
+                              icon: Icons.location_city_rounded,
+                              title: '天气城市',
+                              subtitle: '不申请定位；只请求所选城市的天气',
+                              value: settings.weatherCity,
+                              onTap: () => _pickWeatherCity(context),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -751,11 +824,11 @@ class _SettingsPageState extends State<SettingsPage> {
                             icon: Icons.info_outline_rounded,
                             title: '版本',
                             subtitle: '落·番茄',
-                            value: '1.10.0',
+                            value: '1.11.0',
                             onTap: () => showLicensePage(
                               context: context,
                               applicationName: '落·番茄',
-                              applicationVersion: '1.10.0',
+                              applicationVersion: '1.11.0',
                               applicationLegalese: '把时间种成番茄。',
                             ),
                           ),

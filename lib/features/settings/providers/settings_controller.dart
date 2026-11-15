@@ -109,6 +109,12 @@ class SettingsController extends ChangeNotifier {
     _settings.copyWith(whitelistPackages: List.unmodifiable(packages)),
   );
 
+  void setWeatherBackgroundEnabled(bool value) =>
+      _apply(_settings.copyWith(weatherBackgroundEnabled: value));
+
+  void setWeatherCity(String value) =>
+      _apply(_settings.copyWith(weatherCity: value));
+
   void setAutoLockEnabled(bool value) =>
       _apply(_settings.copyWith(autoLockEnabled: value));
 

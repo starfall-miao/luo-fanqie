@@ -13,6 +13,8 @@ import '../../companion/luoluo_companion.dart';
 import '../../guard/views/app_whitelist_sheet.dart';
 import '../../companion/luoluo_mascot.dart';
 import '../../settings/providers/settings_controller.dart';
+import '../../weather/providers/weather_controller.dart';
+import '../../weather/views/weather_scene.dart';
 import '../../soundscape/soundscape_controller.dart';
 import '../../stats/models/interruption_event.dart';
 import '../../stats/providers/stats_controller.dart';
@@ -722,6 +724,24 @@ class _SessionBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final weather = context.watch<WeatherController>();
+    final snapshot = weather.snapshot;
+    if (weather.enabled && snapshot != null) {
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          WeatherScene(snapshot: snapshot),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(
+                alpha: context.isDark ? 0.24 : 0.08,
+              ),
+            ),
+          ),
+          child,
+        ],
+      );
+    }
     final dark = context.isDark;
     final visuals = visualsFor(phase);
     final baseTop = dark ? const Color(0xFF171014) : const Color(0xFFFFF5ED);
