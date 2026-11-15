@@ -31,10 +31,12 @@ class LandscapeDashboard extends StatelessWidget {
     super.key,
     required this.onOpenSettings,
     required this.onOpenStats,
+    required this.onOpenTasks,
   });
 
   final VoidCallback onOpenSettings;
   final VoidCallback onOpenStats;
+  final VoidCallback onOpenTasks;
 
   @override
   Widget build(BuildContext context) {
@@ -75,6 +77,7 @@ class LandscapeDashboard extends StatelessWidget {
                     child: _TasksCard(
                       tasks: tasks,
                       selectedTaskId: selectedTaskId,
+                      onOpenAll: onOpenTasks,
                       onStart: (task) {
                         if (context.read<PomodoroController>().isRunning) {
                           ScaffoldMessenger.of(context)
@@ -454,11 +457,13 @@ class _TasksCard extends StatelessWidget {
   const _TasksCard({
     required this.tasks,
     required this.selectedTaskId,
+    required this.onOpenAll,
     required this.onStart,
   });
 
   final TaskController tasks;
   final String? selectedTaskId;
+  final VoidCallback onOpenAll;
   final ValueChanged<Task> onStart;
 
   @override
@@ -480,6 +485,14 @@ class _TasksCard extends StatelessWidget {
                 style: TextStyle(fontSize: 10.5, color: surfaces.faint),
               ),
               const Spacer(),
+              TextButton(
+                onPressed: onOpenAll,
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                ),
+                child: const Text('全部'),
+              ),
               CircleIconButton(
                 icon: Icons.add_rounded,
                 tooltip: '新建待办',

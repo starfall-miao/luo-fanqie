@@ -4,7 +4,7 @@
 
 <p>
   <img alt="status" src="https://img.shields.io/badge/status-beta-orange" />
-  <img alt="version" src="https://img.shields.io/badge/version-1.12.0--beta-f15b3d" />
+  <img alt="version" src="https://img.shields.io/badge/version-1.13.0--beta-f15b3d" />
   <img alt="flutter" src="https://img.shields.io/badge/Flutter-3.47.9-027DFD?logo=flutter" />
   <a href="https://github.com/starfall-miao/luo-fanqie/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/starfall-miao/luo-fanqie/actions/workflows/ci.yml/badge.svg" /></a>
   <a href="https://github.com/starfall-miao/luo-fanqie/releases"><img alt="beta release" src="https://img.shields.io/badge/release-beta-orange?logo=github" /></a>
@@ -153,7 +153,7 @@ flutter build apk --release
 ### 测试
 
 ```bash
-flutter test          # 57 项单元 / 组件测试（截图测试默认跳过）
+flutter test          # 58 项单元 / 组件测试（截图测试默认跳过）
 dart analyze
 ```
 
@@ -233,4 +233,4 @@ android/ · ios/ · macos/ · windows/ · linux/ · web/
 - 截图字体：[Noto Sans CJK SC](https://github.com/notofonts/noto-cjk)（SIL Open Font License，已附带许可证）
 - [fl_chart](https://github.com/imaNNeo/fl_chart)、[provider](https://pub.dev/packages/provider)、[shared_preferences](https://pub.dev/packages/shared_preferences)、[http](https://pub.dev/packages/http)
 
-<sub>当前版本：1.12.0 · Beta · 先定待办，再定时间。</sub>
+<sub>当前版本：1.13.0 · Beta · 先定待办，再定时间。</sub>

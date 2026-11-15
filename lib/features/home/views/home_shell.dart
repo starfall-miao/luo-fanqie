@@ -162,9 +162,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       _scheduleAutoLock();
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(content: Text('锁机时间到，但当前已有专注在进行')),
-        );
+        ..showSnackBar(const SnackBar(content: Text('锁机时间到，但当前已有专注在进行')));
       return;
     }
     if (LockSessionPage.active) {
@@ -259,6 +257,14 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         .push(MaterialPageRoute<void>(builder: (_) => const _StatsScreen()));
   }
 
+  void _openTasks() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _TasksScreen(onStartFocus: _startFocusForTask),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
@@ -283,6 +289,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               return LandscapeDashboard(
                 onOpenSettings: _openSettings,
                 onOpenStats: _openStats,
+                onOpenTasks: _openTasks,
               );
             }
             return pages[_index.clamp(0, pages.length - 1)];
@@ -378,6 +385,53 @@ class _SettingsScreen extends StatelessWidget {
                 ),
               ),
               const Expanded(child: SettingsPage()),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TasksScreen extends StatelessWidget {
+  const _TasksScreen({required this.onStartFocus});
+
+  final ValueChanged<Task> onStartFocus;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: AppBackground(
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 6, 16, 0),
+                child: Row(
+                  children: [
+                    CircleIconButton(
+                      icon: Icons.arrow_back_rounded,
+                      tooltip: '返回',
+                      size: 40,
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '全部待办',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: context.surfaces.muted,
+                      ),
+                    ),
+                    const Spacer(),
+                    const SizedBox(width: 40),
+                  ],
+                ),
+              ),
+              Expanded(child: TasksPage(onStartFocus: onStartFocus)),
             ],
           ),
         ),

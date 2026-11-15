@@ -406,4 +406,18 @@ void main() {
     expect(find.text('锁机专注'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('横屏可以打开完整待办页', (tester) async {
+    await _pumpApp(
+      tester,
+      logicalSize: const Size(1280, 800),
+      devicePixelRatio: 2,
+    );
+    await tester.tap(find.text('全部'));
+    await tester.pumpAndSettle();
+    expect(find.text('一棵一棵，慢慢长大'), findsOneWidget);
+    await tester.tap(find.byTooltip('返回').first);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
 }
