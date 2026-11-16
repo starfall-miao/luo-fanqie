@@ -64,7 +64,7 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.checklist_rounded));
     await tester.pumpAndSettle();
-    expect(find.text('一棵一棵，慢慢长大'), findsOneWidget);
+    expect(find.text('待办清单'), findsOneWidget);
 
     await tester.tap(find.byTooltip('新建任务'));
     await tester.pumpAndSettle();
@@ -79,11 +79,11 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.insights_outlined));
     await tester.pumpAndSettle();
-    expect(find.text('时间留下的形状'), findsOneWidget);
+    expect(find.text('专注统计'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.person_outline_rounded));
     await tester.pumpAndSettle();
-    expect(find.text('和落落一起，慢慢专注'), findsOneWidget);
+    expect(find.text('偏好设置'), findsOneWidget);
 
     await tester.ensureVisible(find.text('深色'));
     await tester.pumpAndSettle();
@@ -122,7 +122,7 @@ void main() {
       logicalSize: const Size(1280, 800),
       devicePixelRatio: 2,
     );
-    expect(find.textContaining('落落陪你种番茄'), findsWidgets);
+    expect(find.textContaining('专注工作台'), findsWidgets);
     expect(find.text('锁机专注'), findsOneWidget);
     expect(find.text('今日专注'), findsWidgets);
     expect(find.byIcon(Icons.checklist_rounded), findsNothing);
@@ -130,7 +130,7 @@ void main() {
 
     await tester.tap(find.byTooltip('设置'));
     await tester.pumpAndSettle();
-    expect(find.text('和落落一起，慢慢专注'), findsOneWidget);
+    expect(find.text('偏好设置'), findsOneWidget);
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
     expect(find.text('锁机专注'), findsOneWidget);
@@ -224,7 +224,7 @@ void main() {
 
     await tester.tap(find.byTooltip('设置'));
     await tester.pumpAndSettle();
-    expect(find.text('和落落一起，慢慢专注'), findsOneWidget);
+    expect(find.text('偏好设置'), findsOneWidget);
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
     expect(find.text('锁机专注'), findsOneWidget);
@@ -282,7 +282,7 @@ void main() {
     expect(find.text('不会申请的权限'), findsOneWidget);
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
-    expect(find.text('和落落一起，慢慢专注'), findsOneWidget);
+    expect(find.text('偏好设置'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -313,7 +313,7 @@ void main() {
     );
     await tester.tap(find.text('完整统计'));
     await tester.pumpAndSettle();
-    expect(find.text('时间留下的形状'), findsOneWidget);
+    expect(find.text('专注统计'), findsOneWidget);
     await tester.tap(find.byTooltip('返回').first);
     await tester.pumpAndSettle();
     expect(find.text('完整统计'), findsOneWidget);
@@ -415,7 +415,7 @@ void main() {
     );
     await tester.tap(find.text('全部'));
     await tester.pumpAndSettle();
-    expect(find.text('一棵一棵，慢慢长大'), findsOneWidget);
+    expect(find.text('待办清单'), findsOneWidget);
     await tester.tap(find.byTooltip('返回').first);
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);

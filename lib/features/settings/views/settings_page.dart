@@ -275,8 +275,8 @@ class _SettingsPageState extends State<SettingsPage> {
                   children: [
                     PageHeader(
                       eyebrow: '我的',
-                      title: '和落落一起，慢慢专注',
-                      subtitle: '调成适合自己的节奏，落落会一直在旁边。',
+                      title: '偏好设置',
+                      subtitle: '调整专注、锁机、白名单与同步方式。',
                     ),
                     const SizedBox(height: 20),
                     _ProfileCard(
@@ -299,7 +299,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       const SizedBox(height: 9),
                       SoftCard(
                         padding: const EdgeInsets.symmetric(vertical: 4),
-                        radius: 24,
+                        radius: 16,
                         child: Column(
                           children: [
                             _SettingRow(
@@ -432,7 +432,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       const SizedBox(height: 9),
                       SoftCard(
                         padding: const EdgeInsets.symmetric(vertical: 4),
-                        radius: 24,
+                        radius: 16,
                         child: Column(
                           children: [
                             _SwitchRow(
@@ -608,7 +608,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     const SizedBox(height: 9),
                     SoftCard(
                       padding: const EdgeInsets.all(8),
-                      radius: 24,
+                      radius: 16,
                       child: Row(
                         children: [
                           for (final mode in AppThemeMode.values)
@@ -626,7 +626,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     const SizedBox(height: 10),
                     SoftCard(
                       padding: const EdgeInsets.symmetric(vertical: 4),
-                      radius: 24,
+                      radius: 16,
                       child: Column(
                         children: [
                           _SwitchRow(
@@ -671,7 +671,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     const SizedBox(height: 9),
                     SoftCard(
                       padding: const EdgeInsets.symmetric(vertical: 4),
-                      radius: 24,
+                      radius: 16,
                       child: Column(
                         children: [
                           _SettingRow(
@@ -748,7 +748,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     const SizedBox(height: 9),
                     SoftCard(
                       padding: const EdgeInsets.symmetric(vertical: 4),
-                      radius: 24,
+                      radius: 16,
                       child: Column(
                         children: [
                           _SettingRow(
@@ -797,7 +797,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     const SizedBox(height: 9),
                     SoftCard(
                       padding: const EdgeInsets.symmetric(vertical: 4),
-                      radius: 24,
+                      radius: 16,
                       child: Column(
                         children: [
                           _SettingRow(
@@ -824,11 +824,11 @@ class _SettingsPageState extends State<SettingsPage> {
                             icon: Icons.info_outline_rounded,
                             title: '版本',
                             subtitle: '落·番茄',
-                            value: '1.13.0',
+                            value: '1.14.0',
                             onTap: () => showLicensePage(
                               context: context,
                               applicationName: '落·番茄',
-                              applicationVersion: '1.13.0',
+                              applicationVersion: '1.14.0',
                               applicationLegalese: '把时间种成番茄。',
                             ),
                           ),
@@ -907,7 +907,7 @@ class _SettingsSidebar extends StatelessWidget {
       children: [
         SoftCard(
           padding: const EdgeInsets.all(18),
-          radius: 24,
+          radius: 16,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -953,7 +953,7 @@ class _SettingsSidebar extends StatelessWidget {
         const SizedBox(height: 14),
         SoftCard(
           padding: const EdgeInsets.all(18),
-          radius: 24,
+          radius: 16,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1018,7 +1018,7 @@ class _SettingsSidebar extends StatelessWidget {
         const SizedBox(height: 14),
         SoftCard(
           padding: const EdgeInsets.all(18),
-          radius: 24,
+          radius: 16,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1069,7 +1069,7 @@ class _ProfileCard extends StatelessWidget {
     final surfaces = context.surfaces;
     return SoftCard(
       padding: const EdgeInsets.all(18),
-      radius: 26,
+      radius: 18,
       child: Row(
         children: [
           Container(

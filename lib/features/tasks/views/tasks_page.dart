@@ -128,9 +128,9 @@ class _TasksPageState extends State<TasksPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 PageHeader(
-                  eyebrow: '番茄田',
-                  title: '一棵一棵，慢慢长大',
-                  subtitle: '把想做的事拆小一点，落落陪你一颗一颗种下去。',
+                  eyebrow: '任务',
+                  title: '待办清单',
+                  subtitle: '今天要推进的事，一件一件完成。',
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -286,7 +286,7 @@ class _SummaryCard extends StatelessWidget {
     final surfaces = context.surfaces;
     return SoftCard(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-      radius: 22,
+      radius: 16,
       child: Row(
         children: [
           _SummaryItem(
@@ -448,7 +448,7 @@ class _TaskTile extends StatelessWidget {
       opacity: task.done ? 0.72 : 1,
       child: SoftCard(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-        radius: 22,
+        radius: 16,
         onTap: onTap,
         onLongPress: onLongPress,
         child: Row(
@@ -927,7 +927,7 @@ class _EmptyTasks extends StatelessWidget {
       _TaskFilter.completed => ('还没有完成的任务', '完成的番茄会安静地躺在这里，等你回来看看。'),
     };
     return SoftCard(
-      radius: 26,
+      radius: 18,
       padding: EdgeInsets.zero,
       child: EmptyState(
         title: title,

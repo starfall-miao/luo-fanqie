@@ -2,7 +2,7 @@ name: luo_fanqie_app
 description: "落·番茄 — 把时间种成番茄的专注与待办应用。"
 publish_to: 'none'
 
-version: 1.13.0+16
+version: 1.14.0+17
 
 environment:
   sdk: ^3.13.7
@@ -31,5 +31,6 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - assets/icon/
     - assets/images/
     - assets/sounds/

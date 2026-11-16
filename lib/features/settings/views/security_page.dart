@@ -192,7 +192,7 @@ class _SecurityCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return SoftCard(
       padding: const EdgeInsets.all(18),
-      radius: 24,
+      radius: 16,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

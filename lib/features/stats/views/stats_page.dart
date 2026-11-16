@@ -53,9 +53,9 @@ class _StatsPageState extends State<StatsPage> {
         : stats.todayMinutes / settings.dailyGoalMinutes;
 
     final header = PageHeader(
-      eyebrow: '专注足迹',
-      title: '时间留下的形状',
-      subtitle: '每一颗番茄，都是一段被认真对待的时间。',
+      eyebrow: '数据',
+      title: '专注统计',
+      subtitle: '专注时长、打断原因与应用使用。',
       trailing: InfoPill(
         icon: Icons.calendar_month_rounded,
         label: '${now.month}月',
@@ -86,7 +86,7 @@ class _StatsPageState extends State<StatsPage> {
     );
     final chartCard = SoftCard(
       padding: const EdgeInsets.fromLTRB(18, 17, 18, 12),
-      radius: 26,
+      radius: 18,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -105,7 +105,7 @@ class _StatsPageState extends State<StatsPage> {
     );
     final heatmapCard = SoftCard(
       padding: const EdgeInsets.fromLTRB(18, 17, 18, 16),
-      radius: 26,
+      radius: 18,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -409,7 +409,7 @@ class _PeriodTable extends StatelessWidget {
     final labelStep = rows.length <= 6 ? 1 : (rows.length / 5).ceil();
     return SoftCard(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
-      radius: 26,
+      radius: 18,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -616,7 +616,7 @@ class _InterruptionCard extends StatelessWidget {
       ..sort((a, b) => b.value.length.compareTo(a.value.length));
     return SoftCard(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-      radius: 26,
+      radius: 18,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -742,7 +742,7 @@ class _AppUsageCardState extends State<_AppUsageCard> {
     final scheme = Theme.of(context).colorScheme;
     return SoftCard(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-      radius: 26,
+      radius: 18,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -911,7 +911,7 @@ class _TodayHero extends StatelessWidget {
     final done = minutes >= goal;
     final remaining = math.max(0, goal - minutes);
     return SoftCard(
-      radius: 28,
+      radius: 18,
       padding: const EdgeInsets.all(22),
       gradient: LinearGradient(
         begin: Alignment.topLeft,
@@ -1117,7 +1117,7 @@ class _StatStrip extends StatelessWidget {
     final surfaces = context.surfaces;
     return SoftCard(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 15),
-      radius: 22,
+      radius: 16,
       child: Row(
         children: [
           _StripItem(
@@ -1228,7 +1228,7 @@ class _RecentSessions extends StatelessWidget {
     final surfaces = context.surfaces;
     return SoftCard(
       padding: const EdgeInsets.fromLTRB(18, 17, 18, 12),
-      radius: 26,
+      radius: 18,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -268,9 +267,6 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
-    final glass = context.select<SettingsController, bool>(
-      (controller) => controller.settings.glassEffects,
-    );
     final pages = <Widget>[
       const FocusPage(),
       TasksPage(onStartFocus: (task) => _startFocusForTask(task)),
@@ -301,44 +297,14 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                 constraints.maxWidth >= 900 &&
                 constraints.maxWidth > constraints.maxHeight;
             if (landscape) return const SizedBox.shrink();
-            return SafeArea(
-              top: false,
-              minimum: const EdgeInsets.fromLTRB(18, 0, 18, 12),
-              child: Center(
-                heightFactor: 1,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 480),
-                  child: Container(
-                    padding: const EdgeInsets.all(7),
-                    decoration: BoxDecoration(
-                      color: glass
-                          ? surfaces.nav.withValues(alpha: 0.86)
-                          : surfaces.nav,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: surfaces.border.withValues(alpha: 0.9),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(
-                            alpha: context.isDark ? 0.3 : 0.08,
-                          ),
-                          blurRadius: 30,
-                          offset: const Offset(0, 12),
-                        ),
-                      ],
-                    ),
-                    child: glass
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(18),
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                              child: _navRow(),
-                            ),
-                          )
-                        : _navRow(),
-                  ),
-                ),
+            return Container(
+              decoration: BoxDecoration(
+                color: surfaces.nav,
+                border: Border(top: BorderSide(color: surfaces.border)),
+              ),
+              child: SafeArea(
+                top: false,
+                child: SizedBox(height: 62, child: _navRow()),
               ),
             );
           },

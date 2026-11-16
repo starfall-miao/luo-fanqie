@@ -12,13 +12,13 @@ class SoftCard extends StatelessWidget {
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(20),
-    this.radius = 26,
+    this.radius = 18,
     this.color,
     this.gradient,
     this.border,
     this.onTap,
     this.onLongPress,
-    this.shadow = true,
+    this.shadow = false,
   });
 
   final Widget child;
@@ -49,14 +49,15 @@ class SoftCard extends StatelessWidget {
       color: gradient == null ? cardColor : null,
       gradient: gradient,
       borderRadius: borderRadius,
-      border:
-          border ?? Border.all(color: surfaces.border.withValues(alpha: 0.8)),
-      boxShadow: shadow && !context.isDark
+      border: border ?? Border.all(color: surfaces.border),
+      boxShadow: shadow
           ? [
               BoxShadow(
-                color: const Color(0xFF7A3A2A).withValues(alpha: 0.055),
-                blurRadius: 28,
-                offset: const Offset(0, 12),
+                color: Colors.black.withValues(
+                  alpha: context.isDark ? 0.2 : 0.04,
+                ),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
               ),
             ]
           : null,
@@ -66,11 +67,7 @@ class SoftCard extends StatelessWidget {
       type: MaterialType.transparency,
       child: onTap == null && onLongPress == null
           ? content
-          : InkWell(
-              onTap: onTap,
-              onLongPress: onLongPress,
-              child: content,
-            ),
+          : InkWell(onTap: onTap, onLongPress: onLongPress, child: content),
     );
     if (glass) {
       surface = BackdropFilter(

@@ -324,7 +324,7 @@ Future<bool> showConfirmDialog(
     context: context,
     builder: (dialogContext) => AlertDialog(
       backgroundColor: dialogContext.surfaces.sheet,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       title: Text(title, style: Theme.of(dialogContext).textTheme.titleLarge),
       content: Text(
         message,

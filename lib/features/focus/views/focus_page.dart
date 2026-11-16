@@ -8,9 +8,6 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../shared/widgets/common.dart';
 import '../../../shared/widgets/soft_card.dart';
-import '../../../shared/widgets/tomato_mark.dart';
-import '../../companion/luoluo_companion.dart';
-import '../../companion/luoluo_mascot.dart';
 import '../../settings/providers/settings_controller.dart';
 import '../../stats/providers/stats_controller.dart';
 import '../../tasks/models/task.dart';
@@ -78,30 +75,7 @@ class FocusPage extends StatelessWidget {
       goalMinutes: settings.dailyGoalMinutes,
       progress: goalProgress,
     );
-    final quote = settings.companionEnabled
-        ? LuoLuoCompanion(
-            message: timer.isRunning
-                ? '落落把尾巴收好啦，陪你安静写完这一段。'
-                : '先深呼吸，落落陪你一起种下这一颗番茄吧。',
-            mascotSize: 64,
-            compact: true,
-            studying: timer.phase == PomodoroPhase.focus,
-          )
-        : Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.eco_rounded, size: 13, color: context.surfaces.faint),
-              const SizedBox(width: 5),
-              Text(
-                '慢一点也没关系，落落陪你一起走。',
-                style: TextStyle(
-                  fontSize: 11.5,
-                  letterSpacing: 0.4,
-                  color: context.surfaces.faint,
-                ),
-              ),
-            ],
-          );
+    const quote = SizedBox.shrink();
 
     return SafeArea(
       bottom: false,
@@ -194,7 +168,7 @@ class _TodayFocusCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return SoftCard(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
-      radius: 24,
+      radius: 16,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -319,7 +293,7 @@ class _FocusTipCard extends StatelessWidget {
     final surfaces = context.surfaces;
     return SoftCard(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      radius: 22,
+      radius: 16,
       color: surfaces.cardMuted.withValues(alpha: 0.55),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -364,15 +338,17 @@ class _BrandBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
-    final companionOn = context.select<SettingsController, bool>(
-      (controller) => controller.settings.companionEnabled,
-    );
     return Row(
       children: [
-        if (companionOn)
-          const LuoLuoMascot(size: 44)
-        else
-          const TomatoMark(size: 38, withGlow: true),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(9),
+          child: Image.asset(
+            'assets/icon/app_icon.png',
+            width: 34,
+            height: 34,
+            fit: BoxFit.cover,
+          ),
+        ),
         const SizedBox(width: 11),
         Expanded(
           child: Column(
@@ -385,7 +361,7 @@ class _BrandBar extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                '${greetingForHour(now.hour)}，落落陪你种番茄',
+                '专注 · 一次只做一件事',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -633,7 +609,7 @@ class _FocusTaskCard extends StatelessWidget {
     final accent = tag == null ? context.primary : AppPalette.tag(tag);
     return SoftCard(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      radius: 22,
+      radius: 16,
       onTap: () => showFocusTaskPicker(context),
       child: Row(
         children: [
@@ -718,7 +694,7 @@ class _GoalCard extends StatelessWidget {
     final remaining = math.max(0, goalMinutes - todayMinutes);
     return SoftCard(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-      radius: 24,
+      radius: 16,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -7,8 +7,6 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../shared/widgets/common.dart';
 import '../../../shared/widgets/soft_card.dart';
-import '../../../shared/widgets/tomato_mark.dart';
-import '../../companion/luoluo_mascot.dart';
 import '../../focus/views/lock_start_sheet.dart';
 import '../../focus/views/session_page.dart';
 import '../../focus/views/widgets/task_picker_sheet.dart';
@@ -132,16 +130,18 @@ class _DashboardHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
     final sync = context.watch<SyncController>();
-    final companionOn = context.select<SettingsController, bool>(
-      (controller) => controller.settings.companionEnabled,
-    );
     return Row(
       children: [
-        if (companionOn)
-          LuoLuoMascot(size: 46, studying: timerRunning)
-        else
-          const TomatoMark(size: 38, withGlow: true),
-        const SizedBox(width: 11),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(9),
+          child: Image.asset(
+            'assets/icon/app_icon.png',
+            width: 36,
+            height: 36,
+            fit: BoxFit.cover,
+          ),
+        ),
+        const SizedBox(width: 10),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -177,7 +177,7 @@ class _DashboardHeader extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              '${greetingForHour(now.hour)}，落落陪你种番茄',
+              '专注工作台 · 待办、数据与锁机一页掌握',
               style: TextStyle(fontSize: 11, color: surfaces.muted),
             ),
           ],
@@ -241,7 +241,7 @@ class _FocusCard extends StatelessWidget {
     final dialSize = math.min(MediaQuery.sizeOf(context).width * 0.22, 272.0);
     return SoftCard(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      radius: 26,
+      radius: 18,
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -472,7 +472,7 @@ class _TasksCard extends StatelessWidget {
     final surfaces = context.surfaces;
     return SoftCard(
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-      radius: 26,
+      radius: 18,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -777,7 +777,7 @@ class _TodayOverview extends StatelessWidget {
     final progress = goal <= 0 ? 0.0 : stats.todayMinutes / goal;
     return SoftCard(
       padding: const EdgeInsets.all(16),
-      radius: 24,
+      radius: 16,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -861,7 +861,7 @@ class _TargetsOverview extends StatelessWidget {
     final surfaces = context.surfaces;
     return SoftCard(
       padding: const EdgeInsets.all(16),
-      radius: 24,
+      radius: 16,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -966,7 +966,7 @@ class _QuickActions extends StatelessWidget {
     final mode = settingsController.settings.themeMode;
     return SoftCard(
       padding: const EdgeInsets.all(14),
-      radius: 24,
+      radius: 16,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

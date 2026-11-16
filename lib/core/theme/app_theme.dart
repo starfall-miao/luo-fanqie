@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 /// 暮色番茄配色：暖奶油、番茄红与落日琥珀。
 abstract final class AppPalette {
-  static const tomato = Color(0xFFE85B3C);
-  static const tomatoDeep = Color(0xFFC9472D);
+  static const tomato = Color(0xFFD45137);
+  static const tomatoDeep = Color(0xFFB8412A);
   static const coral = Color(0xFFFF8A65);
   static const apricot = Color(0xFFF4A261);
   static const sun = Color(0xFFFFC978);
@@ -13,7 +13,7 @@ abstract final class AppPalette {
   static const sage = Color(0xFF7FA88F);
   static const sky = Color(0xFF5B7DB1);
 
-  static const darkTomato = Color(0xFFFF7A59);
+  static const darkTomato = Color(0xFFF07A58);
   static const darkCoral = Color(0xFFFFA27F);
 
   static const _tagColors = <String, Color>{
@@ -87,35 +87,35 @@ class AppSurfaceColors extends ThemeExtension<AppSurfaceColors> {
   final Color heroEnd;
 
   static const light = AppSurfaceColors(
-    canvasTop: Color(0xFFFFF9F3),
-    canvasBottom: Color(0xFFFDEADF),
-    card: Color(0xFFFEFCFA),
-    cardMuted: Color(0xFFFFF3EA),
-    border: Color(0xFFF0D9CC),
-    muted: Color(0xFF8A7368),
-    faint: Color(0xFFC7B1A5),
-    glow: Color(0xFFFF9A6E),
-    track: Color(0xFFF4DFD4),
-    nav: Color(0xFFFFFBF7),
-    sheet: Color(0xFFFFFBF7),
-    heroStart: Color(0xFF3B2335),
-    heroEnd: Color(0xFF7A3A34),
+    canvasTop: Color(0xFFF4F1EC),
+    canvasBottom: Color(0xFFE9E5DF),
+    card: Color(0xFFFFFFFF),
+    cardMuted: Color(0xFFF7F4EF),
+    border: Color(0xFFDED8D0),
+    muted: Color(0xFF6F6962),
+    faint: Color(0xFF9B948C),
+    glow: Color(0xFFC9876B),
+    track: Color(0xFFE9E3DB),
+    nav: Color(0xFFFFFFFF),
+    sheet: Color(0xFFFFFFFF),
+    heroStart: Color(0xFF2E2A27),
+    heroEnd: Color(0xFF56443A),
   );
 
   static const dark = AppSurfaceColors(
-    canvasTop: Color(0xFF171014),
-    canvasBottom: Color(0xFF251712),
-    card: Color(0xFF241A18),
-    cardMuted: Color(0xFF2E211D),
-    border: Color(0xFF3B2B26),
-    muted: Color(0xFFB09A8F),
-    faint: Color(0xFF765F56),
-    glow: Color(0xFFFF7D57),
-    track: Color(0xFF382722),
-    nav: Color(0xFF211715),
-    sheet: Color(0xFF211715),
-    heroStart: Color(0xFF3B2335),
-    heroEnd: Color(0xFF823F37),
+    canvasTop: Color(0xFF141413),
+    canvasBottom: Color(0xFF1C1A18),
+    card: Color(0xFF202020),
+    cardMuted: Color(0xFF282522),
+    border: Color(0xFF383531),
+    muted: Color(0xFFB8B1A8),
+    faint: Color(0xFF7A736B),
+    glow: Color(0xFFB5836D),
+    track: Color(0xFF35312D),
+    nav: Color(0xFF1D1C1A),
+    sheet: Color(0xFF221F1D),
+    heroStart: Color(0xFF2C2824),
+    heroEnd: Color(0xFF5A4238),
   );
 
   @override
@@ -210,14 +210,6 @@ abstract final class AppTheme {
     'Droid Sans Fallback',
   ];
 
-  static const _serifFallback = <String>[
-    'Songti SC',
-    'Noto Serif CJK SC',
-    'Noto Serif SC',
-    'SimSun',
-    'Droid Sans Fallback',
-  ];
-
   static final light = _build(
     brightness: Brightness.light,
     scheme:
@@ -230,11 +222,11 @@ abstract final class AppTheme {
           secondary: AppPalette.apricot,
           onSecondary: AppPalette.ink,
           tertiary: AppPalette.plum,
-          surface: const Color(0xFFFEFCFA),
+          surface: const Color(0xFFFFFFFF),
           onSurface: AppPalette.ink,
-          surfaceContainerHighest: const Color(0xFFFFF1E7),
-          outline: const Color(0xFFD8BEB0),
-          outlineVariant: const Color(0xFFF0D9CC),
+          surfaceContainerHighest: const Color(0xFFF2EEE8),
+          outline: const Color(0xFFBEB6AC),
+          outlineVariant: const Color(0xFFDED8D0),
         ),
     surfaces: AppSurfaceColors.light,
   );
@@ -251,11 +243,11 @@ abstract final class AppTheme {
           secondary: AppPalette.darkCoral,
           onSecondary: const Color(0xFF2A110B),
           tertiary: const Color(0xFFC7B3E6),
-          surface: const Color(0xFF241A18),
+          surface: const Color(0xFF202020),
           onSurface: const Color(0xFFF6ECE6),
-          surfaceContainerHighest: const Color(0xFF33241F),
-          outline: const Color(0xFF6E564C),
-          outlineVariant: const Color(0xFF3B2B26),
+          surfaceContainerHighest: const Color(0xFF2C2925),
+          outline: const Color(0xFF6C655D),
+          outlineVariant: const Color(0xFF3A3733),
         ),
     surfaces: AppSurfaceColors.dark,
   );
@@ -274,9 +266,6 @@ abstract final class AppTheme {
     final fontFallback = debugFontFallback == null
         ? _fontFallback
         : <String>[debugFontFallback!, ..._fontFallback];
-    final serifFallback = debugFontFallback == null
-        ? _serifFallback
-        : <String>[debugFontFallback!, ..._serifFallback];
     final textTheme = base.textTheme
         .apply(
           bodyColor: scheme.onSurface,
@@ -285,77 +274,67 @@ abstract final class AppTheme {
         )
         .copyWith(
           displayLarge: TextStyle(
-            fontFamily: debugFontFamily ?? 'serif',
-            fontFamilyFallback: serifFallback,
-            fontSize: 54,
+            fontSize: 38,
             height: 1.15,
-            fontWeight: FontWeight.w600,
-            letterSpacing: -1,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.8,
             color: scheme.onSurface,
           ),
           displayMedium: TextStyle(
-            fontFamily: debugFontFamily ?? 'serif',
-            fontFamilyFallback: serifFallback,
-            fontSize: 40,
+            fontSize: 30,
             height: 1.2,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.4,
             color: scheme.onSurface,
           ),
           displaySmall: TextStyle(
-            fontFamily: debugFontFamily ?? 'serif',
-            fontFamilyFallback: serifFallback,
-            fontSize: 32,
+            fontSize: 24,
             height: 1.25,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.2,
             color: scheme.onSurface,
           ),
           headlineLarge: TextStyle(
-            fontFamily: debugFontFamily ?? 'serif',
-            fontFamilyFallback: serifFallback,
-            fontSize: 30,
+            fontSize: 22,
             height: 1.3,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
             color: scheme.onSurface,
           ),
           headlineMedium: TextStyle(
-            fontFamily: debugFontFamily ?? 'serif',
-            fontFamilyFallback: serifFallback,
-            fontSize: 24,
+            fontSize: 19,
             height: 1.3,
             fontWeight: FontWeight.w600,
             color: scheme.onSurface,
           ),
           headlineSmall: TextStyle(
-            fontFamily: debugFontFamily ?? 'serif',
-            fontFamilyFallback: serifFallback,
-            fontSize: 20,
+            fontSize: 17,
             height: 1.35,
             fontWeight: FontWeight.w600,
             color: scheme.onSurface,
           ),
           titleLarge: TextStyle(
-            fontSize: 18,
+            fontSize: 16.5,
             fontWeight: FontWeight.w600,
             color: scheme.onSurface,
           ),
           titleMedium: TextStyle(
-            fontSize: 15.5,
+            fontSize: 14.5,
             fontWeight: FontWeight.w600,
             color: scheme.onSurface,
           ),
           bodyLarge: TextStyle(
-            fontSize: 16,
-            height: 1.6,
-            color: scheme.onSurface,
-          ),
-          bodyMedium: TextStyle(
-            fontSize: 14,
+            fontSize: 15,
             height: 1.55,
             color: scheme.onSurface,
           ),
-          bodySmall: TextStyle(
-            fontSize: 12.5,
+          bodyMedium: TextStyle(
+            fontSize: 13.5,
             height: 1.5,
+            color: scheme.onSurface,
+          ),
+          bodySmall: TextStyle(
+            fontSize: 12,
+            height: 1.45,
             color: surfaces.muted,
           ),
           labelLarge: TextStyle(
@@ -527,7 +506,7 @@ abstract final class AppTheme {
         backgroundColor: surfaces.sheet,
         headerBackgroundColor: scheme.primary,
         headerForegroundColor: scheme.onPrimary,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
     );
   }

@@ -36,7 +36,7 @@ class AppBackground extends StatelessWidget {
           fit: BoxFit.cover,
           alignment: Alignment.center,
           filterQuality: FilterQuality.low,
-          opacity: const AlwaysStoppedAnimation<double>(0.32),
+          opacity: const AlwaysStoppedAnimation<double>(0.10),
         ),
         DecoratedBox(
           decoration: BoxDecoration(

@@ -4,7 +4,7 @@
 
 <p>
   <img alt="status" src="https://img.shields.io/badge/status-beta-orange" />
-  <img alt="version" src="https://img.shields.io/badge/version-1.13.0--beta-f15b3d" />
+  <img alt="version" src="https://img.shields.io/badge/version-1.14.0--beta-f15b3d" />
   <img alt="flutter" src="https://img.shields.io/badge/Flutter-3.47.9-027DFD?logo=flutter" />
   <a href="https://github.com/starfall-miao/luo-fanqie/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/starfall-miao/luo-fanqie/actions/workflows/ci.yml/badge.svg" /></a>
   <a href="https://github.com/starfall-miao/luo-fanqie/releases"><img alt="beta release" src="https://img.shields.io/badge/release-beta-orange?logo=github" /></a>
@@ -17,7 +17,7 @@
 - **养习惯**：每天、每周选几天、每月选几天，或设置每周 / 每月完成量。
 - 每种待办都可以单独设定单次专注时长，支持自定义标签和一键开始。
 - 横屏 / 平板 / 电脑端取消标签栏，一页卡片仪表盘展示全部核心内容，并可打开完整统计。
-- 猫娘看板娘「落落」陪你专注，会眨眼、抱着书，也会说一些温柔的话。
+- 工具化视觉刷新：中性表面、无衬线字体、扁平卡片与标准底部导航；猫娘落落只在专注会话中作为可选陪伴。
 - 学霸模式拆成置顶提醒、锁定任务、静音通知、白名单、每月 3 次退出机会等可配置项。
 - 独立锁机页：可选择 25 分钟到 12 小时，适合睡眠/重要时段；到点锁机、每月 3 次出口、白名单、锁机中可提前打开手机。
 - 每日锁机计划通过系统闹钟尝试在后台把应用带回前台，需忽略电池优化和允许自启动。
@@ -233,4 +233,4 @@ android/ · ios/ · macos/ · windows/ · linux/ · web/
 - 截图字体：[Noto Sans CJK SC](https://github.com/notofonts/noto-cjk)（SIL Open Font License，已附带许可证）
 - [fl_chart](https://github.com/imaNNeo/fl_chart)、[provider](https://pub.dev/packages/provider)、[shared_preferences](https://pub.dev/packages/shared_preferences)、[http](https://pub.dev/packages/http)
 
-<sub>当前版本：1.13.0 · Beta · 先定待办，再定时间。</sub>
+<sub>当前版本：1.14.0 · Beta · 先定待办，再定时间。</sub>
