@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'app.dart';
 import 'core/notifications/timer_notification_service.dart';
 import 'core/storage/key_value_storage.dart';
+import 'features/growth/providers/growth_controller.dart';
 import 'features/settings/providers/settings_controller.dart';
 import 'features/soundscape/soundscape_controller.dart';
 import 'features/stats/providers/stats_controller.dart';
@@ -37,6 +38,7 @@ class _LuoFanqieBootstrapState extends State<LuoFanqieBootstrap> {
   late final SyncController _sync;
   late final SoundscapeController _soundscape;
   late final WeatherController _weather;
+  late final GrowthController _growth;
 
   @override
   void initState() {
@@ -59,12 +61,14 @@ class _LuoFanqieBootstrapState extends State<LuoFanqieBootstrap> {
       clock: widget.clock,
     );
     _soundscape = SoundscapeController(widget.storage);
+    _growth = GrowthController(widget.storage, clock: widget.clock);
     _weather = WeatherController(storage: widget.storage, settings: _settings);
   }
 
   @override
   void dispose() {
     _weather.dispose();
+    _growth.dispose();
     _soundscape.dispose();
     _sync.dispose();
     _timer.dispose();
@@ -85,6 +89,7 @@ class _LuoFanqieBootstrapState extends State<LuoFanqieBootstrap> {
         ChangeNotifierProvider.value(value: _sync),
         ChangeNotifierProvider.value(value: _soundscape),
         ChangeNotifierProvider.value(value: _weather),
+        ChangeNotifierProvider.value(value: _growth),
       ],
       child: const LuoFanqieApp(),
     );

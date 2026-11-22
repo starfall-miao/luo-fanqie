@@ -824,11 +824,11 @@ class _SettingsPageState extends State<SettingsPage> {
                             icon: Icons.info_outline_rounded,
                             title: '版本',
                             subtitle: '落·番茄',
-                            value: '1.14.0',
+                            value: '2.0.0',
                             onTap: () => showLicensePage(
                               context: context,
                               applicationName: '落·番茄',
-                              applicationVersion: '1.14.0',
+                              applicationVersion: '2.0.0',
                               applicationLegalese: '把时间种成番茄。',
                             ),
                           ),

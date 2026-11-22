@@ -115,6 +115,14 @@ class SettingsController extends ChangeNotifier {
   void setWeatherCity(String value) =>
       _apply(_settings.copyWith(weatherCity: value));
 
+  void setTargetApp({required String packageName, required String label}) =>
+      _apply(
+        _settings.copyWith(
+          targetAppPackage: packageName,
+          targetAppLabel: label,
+        ),
+      );
+
   void setAutoLockEnabled(bool value) =>
       _apply(_settings.copyWith(autoLockEnabled: value));
 

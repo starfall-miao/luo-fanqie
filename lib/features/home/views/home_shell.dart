@@ -12,7 +12,8 @@ import '../../focus/views/focus_page.dart';
 import '../../focus/views/lock_session_page.dart';
 import '../../focus/views/session_page.dart';
 import '../../guard/services/auto_lock_service.dart';
-import 'landscape_dashboard.dart';
+import '../../guard/views/guard_page.dart';
+import '../../growth/views/growth_page.dart';
 import '../../settings/providers/settings_controller.dart';
 import '../../settings/views/settings_page.dart';
 import '../../stats/views/stats_page.dart';
@@ -20,6 +21,7 @@ import '../../sync/providers/sync_controller.dart';
 import '../../tasks/views/tasks_page.dart';
 import '../../tasks/models/task.dart';
 import '../../timer/providers/pomodoro_controller.dart';
+import '../../today/views/today_page.dart';
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
@@ -30,9 +32,10 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   static const _destinations = <_Destination>[
-    _Destination('专注', Icons.timer_outlined, Icons.timer_rounded),
-    _Destination('任务', Icons.checklist_rounded, Icons.fact_check_rounded),
-    _Destination('统计', Icons.insights_outlined, Icons.insights_rounded),
+    _Destination('今日', Icons.today_outlined, Icons.today_rounded),
+    _Destination('成长', Icons.trending_up_rounded, Icons.trending_up_rounded),
+    _Destination('守护', Icons.shield_outlined, Icons.shield_rounded),
+    _Destination('数据', Icons.insights_outlined, Icons.insights_rounded),
     _Destination('我的', Icons.person_outline_rounded, Icons.person_rounded),
   ];
 
@@ -206,7 +209,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         action: SnackBarAction(
           label: '看记录',
           onPressed: () {
-            if (mounted) _goTo(2);
+            if (mounted) _goTo(3);
           },
         ),
         duration: const Duration(seconds: 4),
@@ -251,9 +254,9 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
         .push(MaterialPageRoute<void>(builder: (_) => const _SettingsScreen()));
   }
 
-  void _openStats() {
+  void _openFocus() {
     Navigator.of(context)
-        .push(MaterialPageRoute<void>(builder: (_) => const _StatsScreen()));
+        .push(MaterialPageRoute<void>(builder: (_) => const _FocusScreen()));
   }
 
   void _openTasks() {
@@ -268,8 +271,14 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final surfaces = context.surfaces;
     final pages = <Widget>[
-      const FocusPage(),
-      TasksPage(onStartFocus: (task) => _startFocusForTask(task)),
+      TodayPage(
+        onOpenGrowth: () => _goTo(1),
+        onOpenGuard: () => _goTo(2),
+        onOpenFocus: _openFocus,
+        onOpenTasks: _openTasks,
+      ),
+      const GrowthPage(),
+      GuardPage(onOpenSettings: _openSettings),
       const StatsPage(),
       const SettingsPage(),
     ];
@@ -282,10 +291,15 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                 constraints.maxWidth >= 900 &&
                 constraints.maxWidth > constraints.maxHeight;
             if (landscape) {
-              return LandscapeDashboard(
-                onOpenSettings: _openSettings,
-                onOpenStats: _openStats,
-                onOpenTasks: _openTasks,
+              return Row(
+                children: [
+                  _SideNav(
+                    destinations: _destinations,
+                    index: _index,
+                    onSelected: _goTo,
+                  ),
+                  Expanded(child: pages[_index.clamp(0, pages.length - 1)]),
+                ],
               );
             }
             return pages[_index.clamp(0, pages.length - 1)];
@@ -359,6 +373,51 @@ class _SettingsScreen extends StatelessWidget {
   }
 }
 
+class _FocusScreen extends StatelessWidget {
+  const _FocusScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: AppBackground(
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 6, 16, 0),
+                child: Row(
+                  children: [
+                    CircleIconButton(
+                      icon: Icons.arrow_back_rounded,
+                      tooltip: '返回',
+                      size: 40,
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '计时与待办',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: context.surfaces.muted,
+                      ),
+                    ),
+                    const Spacer(),
+                    const SizedBox(width: 40),
+                  ],
+                ),
+              ),
+              const Expanded(child: FocusPage()),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _TasksScreen extends StatelessWidget {
   const _TasksScreen({required this.onStartFocus});
 
@@ -406,45 +465,106 @@ class _TasksScreen extends StatelessWidget {
   }
 }
 
-class _StatsScreen extends StatelessWidget {
-  const _StatsScreen();
+class _SideNav extends StatelessWidget {
+  const _SideNav({
+    required this.destinations,
+    required this.index,
+    required this.onSelected,
+  });
+
+  final List<_Destination> destinations;
+  final int index;
+  final ValueChanged<int> onSelected;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: AppBackground(
-        child: SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
+    final surfaces = context.surfaces;
+    return Container(
+      width: 196,
+      decoration: BoxDecoration(
+        color: surfaces.nav,
+        border: Border(right: BorderSide(color: surfaces.border)),
+      ),
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.asset(
+                      'assets/icon/app_icon.png',
+                      width: 30,
+                      height: 30,
+                    ),
+                  ),
+                  const SizedBox(width: 9),
+                  Text('落·番茄', style: Theme.of(context).textTheme.titleMedium),
+                ],
+              ),
+            ),
+            for (var i = 0; i < destinations.length; i += 1)
               Padding(
-                padding: const EdgeInsets.fromLTRB(12, 6, 16, 0),
-                child: Row(
-                  children: [
-                    CircleIconButton(
-                      icon: Icons.arrow_back_rounded,
-                      tooltip: '返回',
-                      size: 40,
-                      onPressed: () => Navigator.of(context).pop(),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 2,
+                ),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () => onSelected(i),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
                     ),
-                    const Spacer(),
-                    Text(
-                      '完整统计',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: context.surfaces.muted,
-                      ),
+                    decoration: BoxDecoration(
+                      color: i == index
+                          ? Theme.of(context).colorScheme.primary
+                                .withValues(alpha: 0.08)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    const Spacer(),
-                    const SizedBox(width: 40),
-                  ],
+                    child: Row(
+                      children: [
+                        Icon(
+                          i == index
+                              ? destinations[i].selectedIcon
+                              : destinations[i].icon,
+                          size: 19,
+                          color: i == index
+                              ? Theme.of(context).colorScheme.primary
+                              : surfaces.muted,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          destinations[i].label,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: i == index
+                                ? FontWeight.w600
+                                : FontWeight.w500,
+                            color: i == index
+                                ? Theme.of(context).colorScheme.primary
+                                : surfaces.muted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-              const Expanded(child: StatsPage()),
-            ],
-          ),
+            const Spacer(),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                '番茄 ToDo 增强工作台',
+                style: TextStyle(fontSize: 10, color: surfaces.faint),
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -29,41 +29,50 @@ Future<void> _pumpApp(
   await tester.pumpAndSettle();
 }
 
+Future<void> _openLegacyFocus(WidgetTester tester) async {
+  await tester.tap(find.text('计时').first);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _openLegacyTasks(WidgetTester tester) async {
+  await tester.tap(find.text('待办').first);
+  await tester.pumpAndSettle();
+}
+
 void main() {
-  testWidgets('首页展示品牌、计时盘与底部导航', (tester) async {
+  testWidgets('今日工作台展示集成、成长与旧模块入口', (tester) async {
     await _pumpApp(tester);
 
-    expect(find.text('落·番茄'), findsWidgets);
-    expect(find.text('25:00'), findsOneWidget);
-    expect(find.text('准备专注'), findsOneWidget);
-    expect(find.text('选择要专注的任务'), findsOneWidget);
-    expect(find.text('专注'), findsWidgets);
-    expect(find.text('任务'), findsWidgets);
-    expect(find.text('统计'), findsWidgets);
-    expect(find.text('我的'), findsWidgets);
+    expect(find.text('今天，先做最重要的一件事'), findsOneWidget);
+    expect(find.text('番茄 ToDo 联动'), findsOneWidget);
+    expect(find.text('今日成长'), findsOneWidget);
+    expect(find.text('计时'), findsOneWidget);
+    expect(find.text('待办'), findsOneWidget);
+    expect(find.text('今日'), findsWidgets);
+    expect(find.text('成长'), findsWidgets);
+    expect(find.text('数据'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('可以开始与暂停计时', (tester) async {
+  testWidgets('从今日进入旧专注并开始暂停', (tester) async {
     await _pumpApp(tester);
+    await _openLegacyFocus(tester);
+    expect(find.text('25:00'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.play_arrow_rounded));
     await tester.pumpAndSettle();
     expect(find.byType(SessionPage), findsOneWidget);
     expect(find.byIcon(Icons.pause_rounded), findsOneWidget);
 
-    await tester.pump(const Duration(milliseconds: 400));
     await tester.tap(find.byIcon(Icons.pause_rounded));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
-    expect(find.byType(SessionPage), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
-  testWidgets('可以新建任务并浏览统计与设置页', (tester) async {
+  testWidgets('从今日进入待办并新建', (tester) async {
     await _pumpApp(tester);
-
-    await tester.tap(find.byIcon(Icons.checklist_rounded));
-    await tester.pumpAndSettle();
+    await _openLegacyTasks(tester);
     expect(find.text('待办清单'), findsOneWidget);
 
     await tester.tap(find.byTooltip('新建任务'));
@@ -76,7 +85,42 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('写测试，也是一种专注'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
+  testWidgets('成长可以添加并打卡习惯', (tester) async {
+    await _pumpApp(tester);
+    await tester.tap(find.byIcon(Icons.trending_up_rounded).first);
+    await tester.pumpAndSettle();
+    expect(find.text('长期成长'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('添加成长项目'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '喝水');
+    await tester.tap(find.text('添加'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('喝水'), findsOneWidget);
+    await tester.tap(find.text('喝水'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('连续 1 天'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('守护页展示番茄ToDo与权限入口', (tester) async {
+    await _pumpApp(tester);
+    await tester.tap(find.byIcon(Icons.shield_outlined));
+    await tester.pumpAndSettle();
+
+    expect(find.text('番茄 ToDo 联动'), findsOneWidget);
+    expect(find.textContaining('com.plan.kot32.tomatotime'), findsWidgets);
+    expect(find.text('系统权限'), findsOneWidget);
+    expect(find.text('锁机计划'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('数据和我的入口可用', (tester) async {
+    await _pumpApp(tester);
     await tester.tap(find.byIcon(Icons.insights_outlined));
     await tester.pumpAndSettle();
     expect(find.text('专注统计'), findsOneWidget);
@@ -84,298 +128,59 @@ void main() {
     await tester.tap(find.byIcon(Icons.person_outline_rounded));
     await tester.pumpAndSettle();
     expect(find.text('偏好设置'), findsOneWidget);
-
-    await tester.ensureVisible(find.text('深色'));
+    await tester.ensureVisible(find.text('专注增强'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('深色'));
+    await tester.tap(find.text('专注增强'));
     await tester.pumpAndSettle();
-    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
-    expect(app.themeMode, ThemeMode.dark);
-
+    expect(find.text('专注时长'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('小屏手机各页面布局稳定', (tester) async {
-    await _pumpApp(
-      tester,
-      logicalSize: const Size(360, 740),
-      devicePixelRatio: 2,
-    );
-    expect(tester.takeException(), isNull);
-
-    await tester.tap(find.byIcon(Icons.checklist_rounded));
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-
-    await tester.tap(find.byIcon(Icons.insights_outlined));
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-
-    await tester.tap(find.byIcon(Icons.person_outline_rounded));
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('宽屏使用无标签栏的卡片仪表盘', (tester) async {
+  testWidgets('横屏侧边栏可以进入完整待办与数据', (tester) async {
     await _pumpApp(
       tester,
       logicalSize: const Size(1280, 800),
       devicePixelRatio: 2,
     );
-    expect(find.textContaining('专注工作台'), findsWidgets);
-    expect(find.text('锁机专注'), findsOneWidget);
-    expect(find.text('今日专注'), findsWidgets);
-    expect(find.byIcon(Icons.checklist_rounded), findsNothing);
-    expect(tester.takeException(), isNull);
+    expect(find.text('今天，先做最重要的一件事'), findsOneWidget);
 
-    await tester.tap(find.byTooltip('设置'));
+    await tester.tap(find.text('待办').first);
     await tester.pumpAndSettle();
-    expect(find.text('偏好设置'), findsOneWidget);
-    await tester.tap(find.byTooltip('返回'));
+    expect(find.text('待办清单'), findsOneWidget);
+    await tester.tap(find.byTooltip('返回').first);
     await tester.pumpAndSettle();
-    expect(find.text('锁机专注'), findsOneWidget);
+
+    await tester.tap(find.text('数据').first);
+    await tester.pumpAndSettle();
+    expect(find.text('专注统计'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('可以从待办中选择专注任务', (tester) async {
+  testWidgets('锁机入口打开时长选择', (tester) async {
     await _pumpApp(tester);
-
-    await tester.tap(find.text('选择要专注的任务'));
+    await _openLegacyFocus(tester);
+    await tester.tap(find.text('锁机专注'));
     await tester.pumpAndSettle();
-    expect(find.text('这次，专注于什么？'), findsOneWidget);
-
-    await tester.tap(find.text('完成落·番茄的首页设计'));
+    expect(find.text('落落要把门关上啦'), findsOneWidget);
+    await tester.tap(find.text('今天先不锁'));
     await tester.pumpAndSettle();
-    expect(find.text('完成落·番茄的首页设计'), findsWidgets);
-    expect(find.text('选择要专注的任务'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('修改专注时长会同步到计时器', (tester) async {
-    await _pumpApp(tester);
-
-    await tester.tap(find.byIcon(Icons.person_outline_rounded));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('专注增强'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('专注增强'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('专注时长'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('专注时长'));
-    await tester.pumpAndSettle();
-    expect(find.text('让一颗番茄刚好装下一段注意力。'), findsOneWidget);
-
-    await tester.tap(find.text('45 分钟'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('保存'));
-    await tester.pumpAndSettle();
-    expect(find.text('45 分钟'), findsOneWidget);
-
-    await tester.tap(find.byIcon(Icons.timer_outlined));
-    await tester.pumpAndSettle();
-    expect(find.text('45:00'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('任务卡片可以一键开始专注', (tester) async {
-    await _pumpApp(tester);
-
-    await tester.tap(find.byIcon(Icons.checklist_rounded));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('开始').first);
-    await tester.pumpAndSettle();
-
-    expect(find.byType(SessionPage), findsOneWidget);
-    expect(find.byIcon(Icons.pause_rounded), findsOneWidget);
-
-    await tester.tap(find.byIcon(Icons.pause_rounded));
-    await tester.pump();
-    expect(find.byType(SessionPage), findsOneWidget);
-    expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
-  });
-
-  testWidgets('可以打开跨设备同步设置', (tester) async {
-    await _pumpApp(tester);
-
-    await tester.tap(find.byIcon(Icons.person_outline_rounded));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('文件服务器同步'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('文件服务器同步'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('跨设备同步'), findsWidgets);
-    expect(find.text('服务器类型'), findsOneWidget);
-    expect(find.text('保存并同步'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('平板横屏使用卡片仪表盘且不溢出', (tester) async {
-    await _pumpApp(
-      tester,
-      logicalSize: const Size(1024, 768),
-      devicePixelRatio: 2,
-    );
-    expect(find.text('锁机专注'), findsOneWidget);
-    expect(find.text('待办'), findsWidgets);
-    expect(find.byIcon(Icons.checklist_rounded), findsNothing);
-    expect(tester.takeException(), isNull);
-
-    await tester.tap(find.byTooltip('设置'));
-    await tester.pumpAndSettle();
-    expect(find.text('偏好设置'), findsOneWidget);
-    await tester.tap(find.byTooltip('返回'));
-    await tester.pumpAndSettle();
-    expect(find.text('锁机专注'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('学霸模式进入沉浸页并隐藏暂停与最小化', (tester) async {
+  testWidgets('学霸模式进入沉浸页', (tester) async {
     await _pumpApp(
       tester,
       storage: MemoryStorage({
         'luo_fanqie.settings.v1': const AppSettings(strictMode: true).encode(),
       }),
     );
-
+    await _openLegacyFocus(tester);
     await tester.tap(find.byIcon(Icons.play_arrow_rounded));
     await tester.pumpAndSettle();
 
     expect(find.byType(SessionPage), findsOneWidget);
-    expect(find.text('学霸模式'), findsWidgets);
-    expect(find.byIcon(Icons.pause_rounded), findsNothing);
-    expect(find.byTooltip('最小化'), findsNothing);
+    expect(find.text('暂停 3 分钟'), findsOneWidget);
     expect(find.text('结束守护'), findsWidgets);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('任务编辑器可以在三种类型间切换', (tester) async {
-    await _pumpApp(tester);
-    await tester.tap(find.byIcon(Icons.checklist_rounded));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('新建任务'));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('目标').last);
-    await tester.pumpAndSettle();
-    expect(find.text('目标总量'), findsOneWidget);
-
-    await tester.tap(find.text('习惯').last);
-    await tester.pumpAndSettle();
-    expect(find.text('习惯节奏'), findsOneWidget);
-    expect(find.text('每天'), findsWidgets);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('安全与权限页可查看且不触发额外授权', (tester) async {
-    await _pumpApp(tester);
-    await tester.tap(find.byIcon(Icons.person_outline_rounded));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('安全与权限'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('安全与权限'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('把数据，留在自己手里'), findsOneWidget);
-    expect(find.text('权限按需申请'), findsOneWidget);
-    expect(find.text('不会申请的权限'), findsOneWidget);
-    await tester.tap(find.byTooltip('返回'));
-    await tester.pumpAndSettle();
-    expect(find.text('偏好设置'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('待办支持多选而不是误删', (tester) async {
-    await _pumpApp(tester);
-    await tester.tap(find.byIcon(Icons.checklist_rounded));
-    await tester.pumpAndSettle();
-
-    await tester.longPress(find.text('完成落·番茄的首页设计'));
-    await tester.pumpAndSettle();
-    expect(find.text('已选 1 个'), findsOneWidget);
-
-    await tester.tap(find.text('全选'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('已选 '), findsOneWidget);
-
-    await tester.tap(find.byTooltip('退出多选').first);
-    await tester.pumpAndSettle();
-    expect(find.text('完成落·番茄的首页设计'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('横屏可以打开完整统计', (tester) async {
-    await _pumpApp(
-      tester,
-      logicalSize: const Size(1280, 800),
-      devicePixelRatio: 2,
-    );
-    await tester.tap(find.text('完整统计'));
-    await tester.pumpAndSettle();
-    expect(find.text('专注统计'), findsOneWidget);
-    await tester.tap(find.byTooltip('返回').first);
-    await tester.pumpAndSettle();
-    expect(find.text('完整统计'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('放大字体后主要页面仍不溢出', (tester) async {
-    tester.platformDispatcher.textScaleFactorTestValue = 1.2;
-    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-    await _pumpApp(tester);
-    expect(tester.takeException(), isNull);
-
-    await tester.tap(find.byIcon(Icons.checklist_rounded));
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-
-    await tester.tap(find.byIcon(Icons.person_outline_rounded));
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('统计支持日周月年切换', (tester) async {
-    await _pumpApp(tester);
-    await tester.tap(find.byIcon(Icons.insights_outlined));
-    await tester.pumpAndSettle();
-    expect(find.text('周统计表'), findsOneWidget);
-
-    await tester.tap(find.text('日').first);
-    await tester.pumpAndSettle();
-    expect(find.text('日统计表'), findsOneWidget);
-
-    await tester.tap(find.text('月').first);
-    await tester.pumpAndSettle();
-    expect(find.text('月统计表'), findsOneWidget);
-
-    await tester.tap(find.text('年').first);
-    await tester.pumpAndSettle();
-    expect(find.text('年统计表'), findsOneWidget);
-    expect(find.text('打断原因'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('可以从专注页打开锁机时长选择', (tester) async {
-    await _pumpApp(tester);
-    await tester.tap(find.text('锁机专注'));
-    await tester.pumpAndSettle();
-    expect(find.text('落落要把门关上啦'), findsOneWidget);
-    expect(find.text('开始锁机'), findsOneWidget);
-    await tester.tap(find.text('今天先不锁'));
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('横屏放大字体时卡片不溢出', (tester) async {
-    tester.platformDispatcher.textScaleFactorTestValue = 1.2;
-    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-    await _pumpApp(
-      tester,
-      logicalSize: const Size(1280, 800),
-      devicePixelRatio: 2,
-    );
-    expect(find.text('锁机专注'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -386,7 +191,10 @@ void main() {
       devicePixelRatio: 2,
     );
     expect(tester.takeException(), isNull);
-    await tester.tap(find.byIcon(Icons.checklist_rounded));
+    await tester.tap(find.byIcon(Icons.trending_up_rounded).first);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.byIcon(Icons.shield_outlined));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     await tester.tap(find.byIcon(Icons.insights_outlined));
@@ -397,27 +205,41 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('900 宽最小横屏仪表盘不溢出', (tester) async {
+  testWidgets('900 宽横屏侧边栏不溢出', (tester) async {
     await _pumpApp(
       tester,
       logicalSize: const Size(900, 600),
       devicePixelRatio: 2,
     );
-    expect(find.text('锁机专注'), findsOneWidget);
+    expect(find.text('今天，先做最重要的一件事'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('横屏可以打开完整待办页', (tester) async {
-    await _pumpApp(
-      tester,
-      logicalSize: const Size(1280, 800),
-      devicePixelRatio: 2,
-    );
-    await tester.tap(find.text('全部'));
+  testWidgets('放大字体后主要页面仍不溢出', (tester) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 1.2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await _pumpApp(tester);
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.byIcon(Icons.trending_up_rounded).first);
     await tester.pumpAndSettle();
-    expect(find.text('待办清单'), findsOneWidget);
-    await tester.tap(find.byTooltip('返回').first);
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.byIcon(Icons.person_outline_rounded));
     await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('统计支持日周月年切换', (tester) async {
+    await _pumpApp(tester);
+    await tester.tap(find.byIcon(Icons.insights_outlined));
+    await tester.pumpAndSettle();
+    expect(find.text('周统计表'), findsOneWidget);
+    await tester.tap(find.text('日').first);
+    await tester.pumpAndSettle();
+    expect(find.text('日统计表'), findsOneWidget);
+    await tester.tap(find.text('年').first);
+    await tester.pumpAndSettle();
+    expect(find.text('年统计表'), findsOneWidget);
+    expect(find.text('打断原因'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

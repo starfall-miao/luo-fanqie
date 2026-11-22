@@ -33,6 +33,8 @@ class AppSettings {
     this.autoLockLastDate = '',
     this.weatherBackgroundEnabled = false,
     this.weatherCity = '上海',
+    this.targetAppPackage = 'com.plan.kot32.tomatotime',
+    this.targetAppLabel = '番茄 ToDo',
   });
 
   final int focusMinutes;
@@ -77,6 +79,10 @@ class AppSettings {
   /// 专注页天气背景；只用用户选择的城市，不申请定位。
   final bool weatherBackgroundEnabled;
   final String weatherCity;
+
+  /// 被增强的第三方应用。
+  final String targetAppPackage;
+  final String targetAppLabel;
 
   static const defaults = AppSettings();
 
@@ -186,6 +192,8 @@ class AppSettings {
     'autoLockLastDate': autoLockLastDate,
     'weatherBackgroundEnabled': weatherBackgroundEnabled,
     'weatherCity': weatherCity,
+    'targetAppPackage': targetAppPackage,
+    'targetAppLabel': targetAppLabel,
     'themeMode': themeMode.name,
   };
 
@@ -217,6 +225,8 @@ class AppSettings {
     String? autoLockLastDate,
     bool? weatherBackgroundEnabled,
     String? weatherCity,
+    String? targetAppPackage,
+    String? targetAppLabel,
     AppThemeMode? themeMode,
   }) {
     return AppSettings(
@@ -249,6 +259,8 @@ class AppSettings {
       weatherBackgroundEnabled:
           weatherBackgroundEnabled ?? this.weatherBackgroundEnabled,
       weatherCity: weatherCity ?? this.weatherCity,
+      targetAppPackage: targetAppPackage ?? this.targetAppPackage,
+      targetAppLabel: targetAppLabel ?? this.targetAppLabel,
       themeMode: themeMode ?? this.themeMode,
     );
   }

@@ -36,28 +36,28 @@ void main() {
 
       await expectLater(
         find.byType(HomeShell),
-        matchesGoldenFile('goldens/01-focus-light.png'),
+        matchesGoldenFile('goldens/01-today.png'),
       );
 
-      await tester.tap(find.byIcon(Icons.checklist_rounded));
+      await tester.tap(find.byIcon(Icons.trending_up_rounded).first);
       await tester.pumpAndSettle();
       await expectLater(
         find.byType(HomeShell),
-        matchesGoldenFile('goldens/02-tasks.png'),
+        matchesGoldenFile('goldens/02-growth.png'),
+      );
+
+      await tester.tap(find.byIcon(Icons.shield_outlined));
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(HomeShell),
+        matchesGoldenFile('goldens/03-guard.png'),
       );
 
       await tester.tap(find.byIcon(Icons.insights_outlined));
       await tester.pumpAndSettle();
       await expectLater(
         find.byType(HomeShell),
-        matchesGoldenFile('goldens/03-stats.png'),
-      );
-
-      await tester.tap(find.byIcon(Icons.person_outline_rounded));
-      await tester.pumpAndSettle();
-      await expectLater(
-        find.byType(HomeShell),
-        matchesGoldenFile('goldens/04-settings.png'),
+        matchesGoldenFile('goldens/04-data.png'),
       );
     } finally {
       debugDisableShadows = true;
@@ -71,7 +71,7 @@ void main() {
       await _pumpApp(tester, _seedStorage(themeMode: AppThemeMode.dark));
       await expectLater(
         find.byType(HomeShell),
-        matchesGoldenFile('goldens/05-focus-dark.png'),
+        matchesGoldenFile('goldens/05-today-dark.png'),
       );
     } finally {
       debugDisableShadows = true;
@@ -120,7 +120,9 @@ void main() {
       try {
         await _prepare(tester, logicalSize: const Size(1280, 800));
         await _pumpApp(tester, _seedStorage());
-        await tester.tap(find.byTooltip('开始专注').first);
+        await tester.tap(find.text('计时').first);
+        await tester.pumpAndSettle();
+        await tester.tap(find.byIcon(Icons.play_arrow_rounded));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 600));
         await expectLater(
@@ -140,7 +142,7 @@ void main() {
     try {
       await _prepare(tester);
       await _pumpApp(tester, _seedStorage());
-      await tester.tap(find.byIcon(Icons.checklist_rounded));
+      await tester.tap(find.text('待办').first);
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('新建任务'));
       await tester.pumpAndSettle();
