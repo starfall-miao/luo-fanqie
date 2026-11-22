@@ -206,6 +206,29 @@ class MainActivity : FlutterActivity() {
                     result.success(null)
                 }
 
+                "setCaptureTarget" -> {
+                    val packageName = call.argument<String>("packageName").orEmpty()
+                    TomatoCaptureAccessibilityService.setTarget(this, packageName)
+                    result.success(null)
+                }
+
+                "isCaptureServiceEnabled" -> {
+                    result.success(TomatoCaptureAccessibilityService.isEnabled(this))
+                }
+
+                "openCaptureAccessibilitySettings" -> {
+                    try {
+                        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                        result.success(null)
+                    } catch (error: Exception) {
+                        result.error("capture_settings_failed", error.message, null)
+                    }
+                }
+
+                "consumePendingCapture" -> {
+                    result.success(TomatoCaptureAccessibilityService.consumePending(this))
+                }
+
                 "isNotificationListenerEnabled" -> {
                     val component = ComponentName(
                         this,

@@ -8,6 +8,9 @@ import '../../../shared/widgets/soft_card.dart';
 import '../../stats/services/app_usage_service.dart';
 import '../../guard/services/auto_lock_service.dart';
 import '../../guard/views/app_whitelist_sheet.dart';
+import '../../growth/models/growth_item.dart';
+import '../../growth/providers/growth_controller.dart';
+import '../../integration/services/capture_service.dart';
 import '../../integration/services/target_app_service.dart';
 import '../../settings/providers/settings_controller.dart';
 
@@ -20,10 +23,11 @@ class GuardPage extends StatefulWidget {
   State<GuardPage> createState() => _GuardPageState();
 }
 
-class _GuardPageState extends State<GuardPage> {
+class _GuardPageState extends State<GuardPage> with WidgetsBindingObserver {
   static const _immersive = ImmersiveModeService();
   static const _usage = AppUsageService();
   static const _autoLock = AutoLockService();
+  static const _capture = CaptureService();
 
   bool? _accessibility;
   bool? _notificationListener;
@@ -31,11 +35,39 @@ class _GuardPageState extends State<GuardPage> {
   bool? _usageAccess;
   bool? _battery;
   bool _loading = true;
+  bool? _captureEnabled;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadStatuses();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _primeCapture();
+      await _checkPendingCapture();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadStatuses();
+      _checkPendingCapture();
+    }
+  }
+
+  Future<void> _primeCapture() async {
+    if (!mounted) return;
+    final settings = context.read<SettingsController>().settings;
+    await _capture.setTarget(settings.targetAppPackage);
+    final enabled = await _capture.isEnabled();
+    if (mounted) setState(() => _captureEnabled = enabled);
   }
 
   Future<void> _loadStatuses() async {
@@ -44,6 +76,7 @@ class _GuardPageState extends State<GuardPage> {
     final dnd = await _immersive.isDndAccessGranted();
     final usage = await _usage.hasAccess();
     final battery = await _autoLock.isIgnoringBatteryOptimizations();
+    final capture = await _capture.isEnabled();
     if (!mounted) return;
     setState(() {
       _accessibility = accessibility;
@@ -51,8 +84,122 @@ class _GuardPageState extends State<GuardPage> {
       _dnd = dnd;
       _usageAccess = usage;
       _battery = battery;
+      _captureEnabled = capture;
       _loading = false;
     });
+  }
+
+  Future<void> _checkPendingCapture() async {
+    if (!mounted) return;
+    final texts = await _capture.consumePending();
+    if (!mounted || texts.isEmpty) return;
+    await _showCapturePreview(texts);
+  }
+
+  Future<void> _showCapturePreview(List<String> texts) async {
+    final selected = <int>{for (var i = 0; i < texts.length; i += 1) i};
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      constraints: const BoxConstraints(maxWidth: 620),
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => FractionallySizedBox(
+          heightFactor: 0.82,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 38,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: context.surfaces.border,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '预览抓取内容',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '选择要导入为成长项目的文字；原页面内容不会被修改。',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: context.surfaces.muted,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: texts.length,
+                    itemBuilder: (context, index) => CheckboxListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      value: selected.contains(index),
+                      onChanged: (value) => setSheetState(() {
+                        if (value == true) {
+                          selected.add(index);
+                        } else {
+                          selected.remove(index);
+                        }
+                      }),
+                      title: Text(
+                        texts[index],
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: selected.isEmpty
+                        ? null
+                        : () => Navigator.of(sheetContext).pop(true),
+                    child: Text('导入 ${selected.length} 项'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final growth = context.read<GrowthController>();
+    for (final index in selected) {
+      final text = texts[index];
+      final type =
+          text.contains('每天') || text.contains('每日') || text.contains('习惯')
+          ? GrowthType.habit
+          : text.contains('学习') ||
+                text.contains('课程') ||
+                text.contains('阅读') ||
+                text.contains('单词')
+          ? GrowthType.learning
+          : GrowthType.goal;
+      growth.add(
+        GrowthItem(
+          id: 'imported-${DateTime.now().microsecondsSinceEpoch}-$index',
+          title: text.length > 60 ? text.substring(0, 60) : text,
+          type: type,
+          area: '番茄ToDo导入',
+          createdAt: DateTime.now(),
+        ),
+      );
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text('已导入 ${selected.length} 项到成长模块')));
   }
 
   @override
@@ -197,15 +344,49 @@ class _GuardPageState extends State<GuardPage> {
                 ),
                 const SizedBox(height: 14),
                 _GuardCard(
-                  title: '数据导入',
-                  subtitle: '番茄 ToDo 没有公开 API；将通过显式抓取当前页面导入',
+                  title: '番茄ToDo 页面导入',
+                  subtitle: _captureEnabled == true
+                      ? '页面导入已开启 · 仅在你点击「导入此页」时抓取'
+                      : '开启后，番茄ToDo 页面会出现「导入此页」按钮',
                   children: [
                     Text(
-                      '下一步接入：无障碍悬浮按钮抓取当前页面文字，再预览确认导入。不会持续读取屏幕内容。',
+                      '没有公开 API，所以采用显式抓取：打开番茄ToDo → 点击悬浮的「导入此页」→ 回到落·番茄预览并确认。不会持续读取屏幕，也不会读取密码。',
                       style: TextStyle(
                         fontSize: 11.5,
                         height: 1.55,
                         color: context.surfaces.muted,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () async {
+                              await _capture.openSettings();
+                              if (mounted) _loadStatuses();
+                            },
+                            child: Text(
+                              _captureEnabled == true ? '无障碍设置' : '开启页面导入',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: FilledButton.tonal(
+                            onPressed: () => const TargetAppService().launch(
+                              settings.targetAppPackage,
+                            ),
+                            child: const Text('打开番茄ToDo'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        onPressed: _checkPendingCapture,
+                        child: const Text('检查已抓取内容'),
                       ),
                     ),
                   ],

@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="accessibility_service_description">落·番茄的「学霸守护」：仅在开启学霸模式期间读取当前前台应用包名，用全屏提醒帮你回到专注；不读取任何屏幕文字、密码或聊天内容。可随时在系统无障碍设置中关闭。</string>
+    <string name="accessibility_capture_description">落·番茄的「番茄ToDo页面导入」：只有在番茄ToDo位于前台且用户点击「导入此页」按钮时，才会读取当前页面文字用于导入。不会持续读取、不会读取密码或聊天内容，可随时在系统无障碍设置中关闭。</string>
 </resources>

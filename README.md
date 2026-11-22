@@ -4,7 +4,7 @@
 
 <p>
   <img alt="status" src="https://img.shields.io/badge/status-beta-orange" />
-  <img alt="version" src="https://img.shields.io/badge/version-2.0.0--beta-f15b3d" />
+  <img alt="version" src="https://img.shields.io/badge/version-2.1.0--beta-f15b3d" />
   <img alt="flutter" src="https://img.shields.io/badge/Flutter-3.47.9-027DFD?logo=flutter" />
   <a href="https://github.com/starfall-miao/luo-fanqie/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/starfall-miao/luo-fanqie/actions/workflows/ci.yml/badge.svg" /></a>
 </p>
@@ -51,7 +51,7 @@
 - 能导入：后续通过无障碍“显式抓取当前页面文字”，由用户确认后导入；
 - **不能**：读取它的内部数据库、修改它的任务、替它开始计时、双向同步。
 
-当前 Beta 已完成联动检测与守护基础，无障碍抓取导入仍在下一阶段接入。Guard 页会明确标注这一状态。
+当前 Beta 已支持显式页面抓取：开启独立无障碍服务后，番茄ToDo 页面会出现「导入此页」按钮；抓取的文字回到 Guard 页预览、勾选后导入成长模块。不会持续读取屏幕。
 
 ## Android 系统守护
 
@@ -102,4 +102,4 @@ flutter test
 - 不做隐藏桌面图标、改壁纸、加固启动器、自动防关闭、防卸载；
 - 不做未经用户点击的持续屏幕读取和数据库破解。
 
-<sub>当前版本：2.0.0 · Beta · 番茄 ToDo 增强工作台</sub>
+<sub>当前版本：2.1.0 · Beta · 番茄 ToDo 增强工作台</sub>
