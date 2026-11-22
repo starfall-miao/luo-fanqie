@@ -40,7 +40,9 @@ class GrowthItem {
   final DateTime? createdAt;
 
   bool get isHabit => type == GrowthType.habit;
-  bool get checkedToday => lastCheckInDate == dateKey(DateTime.now());
+  bool checkedOn(DateTime date) => lastCheckInDate == dateKey(date);
+
+  bool get checkedToday => checkedOn(DateTime.now());
   double get ratio => target <= 0 ? 0 : (progress / target).clamp(0, 1);
 
   GrowthItem copyWith({

@@ -175,6 +175,7 @@ class _GuardPageState extends State<GuardPage> with WidgetsBindingObserver {
     );
     if (confirmed != true || !mounted) return;
     final growth = context.read<GrowthController>();
+    growth.ensureArea('番茄ToDo导入');
     for (final index in selected) {
       final text = texts[index];
       final type =

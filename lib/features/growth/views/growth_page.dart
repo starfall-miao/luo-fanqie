@@ -6,16 +6,28 @@ import '../../../core/theme/app_theme.dart';
 import '../../../shared/widgets/common.dart';
 import '../../../shared/widgets/soft_card.dart';
 import '../models/growth_item.dart';
+import '../models/life_area.dart';
 import '../providers/growth_controller.dart';
 
-class GrowthPage extends StatelessWidget {
+class GrowthPage extends StatefulWidget {
   const GrowthPage({super.key});
+
+  @override
+  State<GrowthPage> createState() => _GrowthPageState();
+}
+
+class _GrowthPageState extends State<GrowthPage> {
+  String? _areaFilter;
 
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<GrowthController>();
-    final habits = controller.habits;
-    final plans = controller.plans;
+    final habits = controller.habits
+        .where((item) => _areaFilter == null || item.area == _areaFilter)
+        .toList(growable: false);
+    final plans = controller.plans
+        .where((item) => _areaFilter == null || item.area == _areaFilter)
+        .toList(growable: false);
     return SafeArea(
       bottom: false,
       child: SingleChildScrollView(
@@ -40,6 +52,13 @@ class GrowthPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 _Overview(controller: controller),
+                const SizedBox(height: 14),
+                _AreasCard(
+                  controller: controller,
+                  selected: _areaFilter,
+                  onSelected: (area) => setState(() => _areaFilter = area),
+                  onAddArea: () => _addArea(context),
+                ),
                 const SizedBox(height: 16),
                 _Section(
                   title: '全天习惯',
@@ -78,12 +97,62 @@ class GrowthPage extends StatelessWidget {
     );
   }
 
+  Future<void> _addArea(BuildContext context) async {
+    final controller = context.read<GrowthController>();
+    final name = TextEditingController();
+    final note = TextEditingController();
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('添加人生领域'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: name,
+              decoration: const InputDecoration(hintText: '领域名称'),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: note,
+              decoration: const InputDecoration(hintText: '一句描述（可选）'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('添加'),
+          ),
+        ],
+      ),
+    );
+    if (result == true && name.text.trim().isNotEmpty) {
+      controller.addArea(
+        LifeArea(
+          id: 'area-${DateTime.now().microsecondsSinceEpoch}',
+          name: name.text.trim(),
+          note: note.text.trim(),
+          colorIndex: controller.areas.length,
+        ),
+      );
+    }
+    Future<void>.delayed(const Duration(milliseconds: 400), () {
+      name.dispose();
+      note.dispose();
+    });
+  }
+
   Future<void> _addGrowth(BuildContext context) async {
     final controller = context.read<GrowthController>();
     final title = TextEditingController();
-    final area = TextEditingController(text: '成长');
     final target = TextEditingController(text: '30');
     var type = GrowthType.habit;
+    var areaName = context.read<GrowthController>().areas.first.name;
     final result = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
@@ -110,9 +179,21 @@ class GrowthPage extends StatelessWidget {
                   decoration: const InputDecoration(hintText: '名称'),
                 ),
                 const SizedBox(height: 10),
-                TextField(
-                  controller: area,
-                  decoration: const InputDecoration(hintText: '人生领域'),
+                DropdownButtonFormField<String>(
+                  initialValue: areaName,
+                  decoration: const InputDecoration(labelText: '人生领域'),
+                  items: [
+                    for (final area in context.read<GrowthController>().areas)
+                      DropdownMenuItem(
+                        value: area.name,
+                        child: Text(area.name),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setModalState(() => areaName = value);
+                    }
+                  },
                 ),
                 if (type != GrowthType.habit) ...[
                   const SizedBox(height: 10),
@@ -141,7 +222,6 @@ class GrowthPage extends StatelessWidget {
     if (result != true || title.text.trim().isEmpty) {
       Future<void>.delayed(const Duration(milliseconds: 400), () {
         title.dispose();
-        area.dispose();
         target.dispose();
       });
       return;
@@ -152,17 +232,70 @@ class GrowthPage extends StatelessWidget {
         id: 'growth-${DateTime.now().microsecondsSinceEpoch}',
         title: title.text.trim(),
         type: type,
-        area: area.text.trim().isEmpty ? '成长' : area.text.trim(),
+        area: areaName,
         target: amount,
         createdAt: DateTime.now(),
       ),
     );
     Future<void>.delayed(const Duration(milliseconds: 400), () {
       title.dispose();
-      area.dispose();
       target.dispose();
     });
     HapticFeedback.mediumImpact();
+  }
+}
+
+class _AreasCard extends StatelessWidget {
+  const _AreasCard({
+    required this.controller,
+    required this.selected,
+    required this.onSelected,
+    required this.onAddArea,
+  });
+
+  final GrowthController controller;
+  final String? selected;
+  final ValueChanged<String?> onSelected;
+  final VoidCallback onAddArea;
+
+  @override
+  Widget build(BuildContext context) {
+    return SoftCard(
+      padding: const EdgeInsets.fromLTRB(16, 14, 12, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionTitle(
+            title: '人生领域',
+            subtitle: '把长期目标放回生活的不同部分',
+            trailing: TextButton(onPressed: onAddArea, child: const Text('添加')),
+          ),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                ChoiceChip(
+                  label: const Text('全部'),
+                  selected: selected == null,
+                  onSelected: (_) => onSelected(null),
+                ),
+                for (final area in controller.areas) ...[
+                  const SizedBox(width: 6),
+                  ChoiceChip(
+                    label: Text(
+                      '${area.name} ${controller.countInArea(area.name)}',
+                    ),
+                    selected: selected == area.name,
+                    onSelected: (_) => onSelected(area.name),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

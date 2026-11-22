@@ -97,7 +97,7 @@ void main() {
     await tester.tap(find.byTooltip('添加成长项目'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, '喝水');
-    await tester.tap(find.text('添加'));
+    await tester.tap(find.widgetWithText(FilledButton, '添加'));
     await tester.pumpAndSettle();
 
     expect(find.text('喝水'), findsOneWidget);

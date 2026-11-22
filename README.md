@@ -4,7 +4,7 @@
 
 <p>
   <img alt="status" src="https://img.shields.io/badge/status-beta-orange" />
-  <img alt="version" src="https://img.shields.io/badge/version-2.1.0--beta-f15b3d" />
+  <img alt="version" src="https://img.shields.io/badge/version-2.2.0--beta-f15b3d" />
   <img alt="flutter" src="https://img.shields.io/badge/Flutter-3.47.9-027DFD?logo=flutter" />
   <a href="https://github.com/starfall-miao/luo-fanqie/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/starfall-miao/luo-fanqie/actions/workflows/ci.yml/badge.svg" /></a>
 </p>
@@ -67,6 +67,7 @@
 ## 成长模块
 
 - 全天习惯：不依赖番茄计时，每天可打卡，记录连续天数；
+- 人生领域：学习、健康、创作、关系、财务，可自定义和筛选；
 - 长期目标 / 学习计划：目标量、当前进度、所属人生领域；
 - 未来会继续扩展人生领域、阶段复盘和学习档案。
 
@@ -87,7 +88,7 @@ flutter test
 
 要求 Flutter 3.47.9+、Dart 3.13+。
 
-当前验证：**49 项测试通过**、`dart analyze` 0 issues、Android Kotlin 编译通过、六端 GitHub Actions Beta 构建成功。
+当前验证：**52 项测试通过**、`dart analyze` 0 issues、Android Kotlin 编译通过、六端 GitHub Actions Beta 构建成功。
 
 ## 下载
 
@@ -102,4 +103,4 @@ flutter test
 - 不做隐藏桌面图标、改壁纸、加固启动器、自动防关闭、防卸载；
 - 不做未经用户点击的持续屏幕读取和数据库破解。
 
-<sub>当前版本：2.1.0 · Beta · 番茄 ToDo 增强工作台</sub>
+<sub>当前版本：2.2.0 · Beta · 番茄 ToDo 增强工作台</sub>
